@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jira Bug Analysis Report</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      line-height: 1.6;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+      background: #f5f5f5;
+    }
+    h1 { color: #1a73e8; border-bottom: 2px solid #1a73e8; padding-bottom: 0.5rem; }
+    h2 { color: #333; margin-top: 2rem; }
+    h3 { color: #555; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      background: white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 0.75rem;
+      text-align: left;
+    }
+    th { background: #f8f9fa; font-weight: 600; }
+    tr:nth-child(even) { background: #f8f9fa; }
+    .severity-critical { color: white; background: #d32f2f; padding: 2px 8px; border-radius: 4px; }
+    .severity-high { color: #d32f2f; font-weight: bold; }
+    .severity-medium { color: #f57c00; }
+    .severity-low { color: #388e3c; }
+    .cluster { background: white; padding: 1rem; margin: 1rem 0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .recommendation { background: #e8f5e9; padding: 0.5rem 1rem; margin: 0.5rem 0; border-left: 4px solid #4caf50; }
+    code { background: #f5f5f5; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+<h1>Jira Bug Analysis Report</h1>
+<p><em>Generated: 1/29/2026, 3:06:03 PM</em></p>
+<h2>Summary</h2>
+<p>Analysis reveals 50 bugs clustered around 5 major root causes: ERT functionality issues (8 bugs), V8 platform integration problems (8 bugs), farebox communication failures (4 bugs), route file management issues (3 bugs), and GPS/odometer integration problems (2 bugs). ERT and V8 platform issues represent the highest risk areas requiring immediate attention.</p>
+<h2>Root Cause Clusters (5)</h2>
+<h3>Enhanced Route Tracking (ERT) Issues</h3>
+<p><strong>Severity:</strong> CRITICAL</p>
+<p>Multiple issues with ERT functionality causing tracking problems, missed timepoints, and adherence calculation errors</p>
+<p><strong>Root Cause:</strong> ERT implementation has fundamental issues with route synchronization, timepoint detection, and layover handling</p>
+<p><strong>Affected Bugs:</strong> <code>TMMOB-17594</code>, <code>TMMOB-17559</code>, <code>TMMOB-17516</code>, <code>TMMOB-17354</code>, <code>TMMOB-17331</code>, <code>TMMOB-17290</code>, <code>TMMOB-17176</code>, <code>TMMOB-17076</code></p>
+<p><strong>Components:</strong> ERT, OnSite, Fixed Route</p>
+<p><strong>Suggested Fix:</strong> Comprehensive ERT module refactoring focusing on timepoint synchronization logic and layover detection algorithms</p>
+<h3>V8 Hardware/OS Integration Issues</h3>
+<p><strong>Severity:</strong> HIGH</p>
+<p>V8 platform experiencing various hardware-related issues including reboots, networking problems, and radio integration failures</p>
+<p><strong>Root Cause:</strong> V8 platform integration issues with hardware components and OS upgrades causing system instability</p>
+<p><strong>Affected Bugs:</strong> <code>TMMOB-17758</code>, <code>TMMOB-17471</code>, <code>TMMOB-17451</code>, <code>TMMOB-17449</code>, <code>TMMOB-17443</code>, <code>TMMOB-17415</code>, <code>TMMOB-17335</code>, <code>TMMOB-17153</code></p>
+<p><strong>Components:</strong> Vehicle Intelligence, Radio: General, Networking, VLU</p>
+<p><strong>Suggested Fix:</strong> Stabilize V8 hardware abstraction layer and improve OS upgrade procedures with better rollback capabilities</p>
+<h3>Farebox Communication Problems</h3>
+<p><strong>Severity:</strong> HIGH</p>
+<p>Multiple farebox-related issues including excessive messages, logon failures, and interface flickering</p>
+<p><strong>Root Cause:</strong> Farebox communication protocol issues causing message flooding and authentication failures</p>
+<p><strong>Affected Bugs:</strong> <code>TMMOB-17761</code>, <code>TMMOB-17760</code>, <code>TMMOB-17434</code>, <code>TMMOB-17282</code></p>
+<p><strong>Components:</strong> Farebox: GFI, OBV: Bytemark</p>
+<p><strong>Suggested Fix:</strong> Implement farebox message throttling and improve authentication retry logic with exponential backoff</p>
+<h3>Route File Management Issues</h3>
+<p><strong>Severity:</strong> CRITICAL</p>
+<p>Problems with route file updates getting stuck in pending state and causing logon failures</p>
+<p><strong>Root Cause:</strong> Route file processing pipeline has race conditions and error handling issues during updates</p>
+<p><strong>Affected Bugs:</strong> <code>TMMOB-17302</code>, <code>TMMOB-17383</code>, <code>TMMOB-17454</code></p>
+<p><strong>Components:</strong> Pending, Logon</p>
+<p><strong>Suggested Fix:</strong> Redesign route file update mechanism with atomic transactions and improved error recovery</p>
+<h3>GPS/Odometer Integration Problems</h3>
+<p><strong>Severity:</strong> MEDIUM</p>
+<p>Issues with GPS-based odometer readings showing incorrect values or getting stuck</p>
+<p><strong>Root Cause:</strong> GPS odometer calculation logic has edge cases with external GPS sources and drift handling</p>
+<p><strong>Affected Bugs:</strong> <code>TMMOB-17218</code>, <code>TMMOB-17170</code></p>
+<p><strong>Components:</strong> GPS, Odometer, RouteLocation: Odometer</p>
+<p><strong>Suggested Fix:</strong> Improve GPS odometer validation logic and add fallback mechanisms for invalid readings</p>
+<h2>Recurring Issues</h2>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Occurrences</th>
+<th>Bugs</th>
+<th>Timespan</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ERT causing missed timepoints and adherence issues</td>
+<td>5</td>
+<td>TMMOB-17559, TMMOB-17331, TMMOB-17290, TMMOB-17176, TMMOB-17076</td>
+<td>Over 6 months</td>
+</tr>
+<tr>
+<td>V8 platform stability and integration issues</td>
+<td>4</td>
+<td>TMMOB-17449, TMMOB-17443, TMMOB-17335, TMMOB-17153</td>
+<td>Over 4 months</td>
+</tr>
+<tr>
+<td>Farebox communication and authentication failures</td>
+<td>3</td>
+<td>TMMOB-17761, TMMOB-17760, TMMOB-17282</td>
+<td>Over 3 months</td>
+</tr>
+</tbody></table>
+<h2>Component Hotspots</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Bug Count</th>
+<th>Severity</th>
+<th>Trend</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ERT</td>
+<td>8</td>
+<td>high</td>
+<td>stable</td>
+</tr>
+<tr>
+<td>V8/Vehicle Intelligence</td>
+<td>6</td>
+<td>high</td>
+<td>increasing</td>
+</tr>
+<tr>
+<td>Radio: General</td>
+<td>4</td>
+<td>medium</td>
+<td>stable</td>
+</tr>
+<tr>
+<td>Farebox Integration</td>
+<td>4</td>
+<td>medium</td>
+<td>stable</td>
+</tr>
+<tr>
+<td>TBT (Turn-By-Turn)</td>
+<td>3</td>
+<td>medium</td>
+<td>decreasing</td>
+</tr>
+</tbody></table>
+<h2>Recommendations</h2>
+<ol>
+<li>Prioritize ERT module stabilization - implement comprehensive testing suite and refactor timepoint synchronization logic</li>
+<li>Establish V8 platform stability task force to address hardware integration issues and improve OS upgrade procedures</li>
+<li>Implement farebox communication throttling and improve error handling to reduce message flooding</li>
+<li>Redesign route file update mechanism with atomic operations and better error recovery</li>
+<li>Create comprehensive regression testing framework covering all major integration points</li>
+<li>Establish component ownership model with dedicated teams for high-risk areas (ERT, V8, Radio)</li>
+<li>Implement better logging and diagnostics for intermittent issues to improve root cause analysis</li>
+<li>Create automated testing pipeline for V8 hardware combinations to catch integration issues early</li>
+</ol>
+
+</body>
+</html>

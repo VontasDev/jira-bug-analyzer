@@ -1,0 +1,39 @@
+{
+  "name": "jira-bug-analyzer",
+  "version": "1.0.0",
+  "description": "CLI tool to analyze Jira bugs using Claude AI",
+  "main": "dist/index.js",
+  "bin": {
+    "jira-analyzer": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "lint": "eslint src/**/*.ts",
+    "clean": "rimraf dist"
+  },
+  "keywords": ["jira", "bug", "analyzer", "claude", "ai"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "chalk": "^5.3.0",
+    "cli-table3": "^0.6.5",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "jira.js": "^4.0.1",
+    "marked": "^14.1.0",
+    "ora": "^8.1.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "typescript": "^5.6.0",
+    "ts-node": "^10.9.2",
+    "rimraf": "^6.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

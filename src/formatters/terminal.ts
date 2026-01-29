@@ -125,7 +125,7 @@ export class TerminalFormatter {
     return lines.join('\n');
   }
 
-  private getSeverityColor(severity: string): chalk.Chalk {
+  private getSeverityColor(severity: string): (text: string) => string {
     switch (severity.toLowerCase()) {
       case 'critical':
         return chalk.bgRed.white;

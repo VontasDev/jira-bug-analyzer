@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import ora from 'ora';
 import chalk from 'chalk';
+import Table from 'cli-table3';
 import { JiraService } from '../services/jira.js';
 import { TerminalFormatter } from '../formatters/terminal.js';
 import { JsonFormatter } from '../formatters/json.js';
@@ -26,20 +27,47 @@ export async function fetchCommand(
       spinner.fail('Failed to connect to Jira. Check your credentials.');
       process.exit(1);
     }
+
+    // List filters mode
+    if (options.listFilters) {
+      spinner.text = 'Fetching available bug filters...';
+      const filters = await jiraService.listBugFilters();
+      spinner.succeed(`Found ${filters.length} bug-related filters`);
+
+      const table = new Table({
+        head: [chalk.bold('ID'), chalk.bold('Filter Name')],
+        colWidths: [10, 70],
+      });
+
+      for (const filter of filters) {
+        table.push([filter.id, filter.name]);
+      }
+
+      console.log(table.toString());
+      console.log(chalk.gray('\nUse --filter-id <id> to fetch bugs from a specific filter.'));
+      return [];
+    }
+
     spinner.text = 'Connected. Fetching bugs...';
 
     // Build query info for display
-    const queryInfo = options.jql
-      ? `JQL: ${options.jql}`
-      : options.project
-        ? `Project: ${options.project}`
-        : 'All bugs';
+    let queryInfo: string;
+    if (options.filterId) {
+      queryInfo = `Filter ID: ${options.filterId}`;
+    } else if (options.jql) {
+      queryInfo = `JQL: ${options.jql}`;
+    } else if (options.project) {
+      queryInfo = `Project: ${options.project}`;
+    } else {
+      queryInfo = 'All bugs';
+    }
 
     spinner.text = `Fetching bugs (${queryInfo})...`;
 
     const bugs = await jiraService.fetchBugs({
       project: options.project,
       jql: options.jql,
+      filterId: options.filterId,
       maxResults: options.maxResults,
     });
 

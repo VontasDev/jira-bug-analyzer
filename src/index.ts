@@ -42,6 +42,8 @@ program
   .description('Fetch bugs from Jira')
   .option('-p, --project <project>', 'Jira project key')
   .option('-q, --jql <query>', 'Custom JQL query')
+  .option('-f, --filter-id <id>', 'Use a saved Jira filter by ID')
+  .option('-l, --list-filters', 'List available bug-related filters')
   .option('-m, --max <number>', 'Maximum bugs to fetch', '100')
   .option('-o, --output <file>', 'Output file path (JSON)')
   .action(async (options) => {
@@ -50,6 +52,8 @@ program
       {
         project: options.project,
         jql: options.jql,
+        filterId: options.filterId,
+        listFilters: options.listFilters,
         maxResults: parseInt(options.max, 10),
         outputFile: options.output,
       },
@@ -82,6 +86,7 @@ program
   .description('Fetch bugs and run full analysis pipeline')
   .option('-p, --project <project>', 'Jira project key')
   .option('-q, --jql <query>', 'Custom JQL query')
+  .option('--filter-id <id>', 'Use a saved Jira filter by ID')
   .option('-m, --max <number>', 'Maximum bugs to fetch', '100')
   .option('-f, --format <format>', 'Output format: terminal, json, markdown, html', 'terminal')
   .option('-o, --output <file>', 'Output file path')
@@ -91,6 +96,7 @@ program
       {
         project: options.project,
         jql: options.jql,
+        filterId: options.filterId,
         maxResults: parseInt(options.max, 10),
         outputFormat: options.format,
         outputFile: options.output,

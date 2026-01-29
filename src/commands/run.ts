@@ -36,6 +36,7 @@ export async function runCommand(
     const bugs = await jiraService.fetchBugs({
       project: options.project,
       jql: options.jql,
+      filterId: options.filterId,
       maxResults: options.maxResults,
     });
 

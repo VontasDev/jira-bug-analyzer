@@ -69,8 +69,10 @@ export interface ComponentHotspot {
 export interface FetchOptions {
   project?: string;
   jql?: string;
+  filterId?: string;
   maxResults?: number;
   outputFile?: string;
+  listFilters?: boolean;
 }
 
 export interface AnalyzeOptions {
@@ -82,6 +84,7 @@ export interface AnalyzeOptions {
 export interface RunOptions {
   project?: string;
   jql?: string;
+  filterId?: string;
   maxResults?: number;
   outputFormat?: 'terminal' | 'json' | 'markdown' | 'html';
   outputFile?: string;

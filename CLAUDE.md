@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Jira Bug Analyzer - A TypeScript CLI tool that pulls bugs from Jira Cloud and uses Claude AI to analyze patterns, group bugs by root cause, and identify component hotspots.
+Jira Bug Analyzer - A TypeScript CLI tool that pulls bugs from Jira Cloud and uses Claude AI to analyze patterns, group bugs by root cause, and identify component hotspots. Specifically designed to analyze **escaped bugs** (bugs that escaped SIT testing) to understand WHY they escaped and suggest test scenarios to prevent future escapes.
 
 ## Commands
 
@@ -59,13 +59,13 @@ src/
 │   └── config.ts      # Credential management (~/.jira-bug-analyzer/config.json)
 ├── services/
 │   ├── jira.ts        # Jira Cloud API client (direct fetch, not jira.js for search)
-│   └── claude.ts      # Claude API integration with analysis prompts
+│   └── claude.ts      # Claude API integration with escape analysis prompts
 ├── formatters/
 │   ├── terminal.ts    # Rich CLI output with chalk + cli-table3
 │   ├── json.ts        # Structured JSON export
 │   └── report.ts      # Markdown/HTML report generation
 └── types/
-    └── index.ts       # TypeScript interfaces and Zod schemas
+    └── index.ts       # TypeScript interfaces (JiraBug, PatternAnalysis, EscapePattern, TestScenario, TestingGap)
 ```
 
 ## Key Patterns
@@ -75,6 +75,37 @@ src/
 - Fetches individual issues via `/rest/api/3/issue/{id}` after getting IDs from JQL search
 - Descriptions and comments may be in Atlassian Document Format (ADF) - converted to plain text
 - Output formats: terminal (default), json, markdown, html
+
+## Analysis Output
+
+The analysis report includes the following sections:
+
+### Standard Analysis
+- **Root Cause Clusters** - Groups bugs by underlying cause with severity and suggested fixes
+- **Recurring Issues** - Patterns that appear multiple times across bugs
+- **Component Hotspots** - Areas with high bug density and trend indicators
+- **Recommendations** - Actionable suggestions based on the analysis
+
+### Escape Analysis (for escaped bugs)
+- **Escape Patterns** - Categorizes WHY bugs escaped SIT testing:
+  - `edge-case` - Unusual input combinations or boundary conditions
+  - `environment` - Environment-specific issues (prod vs test)
+  - `timing` - Race conditions or timing-dependent behavior
+  - `data-driven` - Issues with specific data patterns
+  - `integration` - Cross-system interaction problems
+  - `configuration` - Config differences between environments
+  - `race-condition` - Concurrency issues
+  - `hardware-specific` - Device or hardware-dependent bugs
+
+- **Suggested Test Scenarios** - Specific test cases that would have caught the bugs:
+  - Prioritized as critical/high/medium
+  - Includes preconditions, steps, and expected outcomes
+  - Maps to specific bugs that would be caught
+
+- **Testing Gap Analysis** - Areas where test coverage needs improvement:
+  - Current coverage assessment
+  - Number of bugs impacted
+  - Suggested improvements
 
 ## Known Issues & Workarounds
 

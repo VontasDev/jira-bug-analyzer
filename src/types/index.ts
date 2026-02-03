@@ -50,6 +50,9 @@ export interface PatternAnalysis {
   componentHotspots: ComponentHotspot[];
   summary: string;
   recommendations: string[];
+  escapePatterns: EscapePattern[];
+  suggestedTestScenarios: TestScenario[];
+  testingGaps: TestingGap[];
 }
 
 export interface RecurringIssue {
@@ -64,6 +67,32 @@ export interface ComponentHotspot {
   bugCount: number;
   severity: string;
   trend: 'increasing' | 'stable' | 'decreasing';
+}
+
+export interface EscapePattern {
+  category: 'edge-case' | 'environment' | 'timing' | 'data-driven' | 'integration' | 'configuration' | 'race-condition' | 'hardware-specific';
+  description: string;
+  bugKeys: string[];
+  frequency: number;
+}
+
+export interface TestScenario {
+  name: string;
+  description: string;
+  type: 'unit' | 'integration' | 'e2e' | 'performance' | 'stress' | 'environment';
+  targetBugs: string[];
+  preconditions: string[];
+  steps: string[];
+  expectedOutcome: string;
+  priority: 'critical' | 'high' | 'medium';
+}
+
+export interface TestingGap {
+  area: string;
+  description: string;
+  currentCoverage: string;
+  suggestedImprovement: string;
+  impactedBugCount: number;
 }
 
 export interface FetchOptions {

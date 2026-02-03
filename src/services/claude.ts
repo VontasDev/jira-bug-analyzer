@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { JiraBug, BugCluster, PatternAnalysis } from '../types/index.js';
+import type { JiraBug, BugCluster, PatternAnalysis, EscapePattern, TestScenario, TestingGap } from '../types/index.js';
 
 export class ClaudeService {
   private client: Anthropic;
@@ -18,13 +18,18 @@ export class ClaudeService {
       messages: [
         {
           role: 'user',
-          content: `You are an expert software engineer analyzing bug reports to identify patterns and root causes.
+          content: `You are an expert software engineer and QA specialist analyzing bug reports that ESCAPED SIT (System Integration Testing).
+
+These bugs were found in production or UAT after SIT was completed. Your goal is to understand WHY they escaped and HOW to prevent similar escapes.
 
 Analyze the following ${bugs.length} bug reports and provide:
 1. Group them into logical clusters based on root cause
 2. Identify recurring issues (same problem appearing multiple times)
 3. Identify component hotspots (areas with high bug density)
 4. Provide actionable recommendations
+5. Analyze WHY these bugs escaped SIT testing - categorize the escape patterns
+6. Suggest specific test scenarios that would have caught each bug cluster
+7. Identify testing methodology gaps (what types of tests are missing)
 
 Bug Reports:
 ${bugsContext}
@@ -59,7 +64,36 @@ Respond with a JSON object matching this exact structure:
       "trend": "increasing|stable|decreasing"
     }
   ],
-  "summary": "High-level summary of findings",
+  "escapePatterns": [
+    {
+      "category": "edge-case|environment|timing|data-driven|integration|configuration|race-condition|hardware-specific",
+      "description": "Why these bugs escaped SIT testing",
+      "bugKeys": ["BUG-1", "BUG-2"],
+      "frequency": 3
+    }
+  ],
+  "suggestedTestScenarios": [
+    {
+      "name": "Test scenario name",
+      "description": "What this test validates",
+      "type": "unit|integration|e2e|performance|stress|environment",
+      "targetBugs": ["BUG-1", "BUG-2"],
+      "preconditions": ["Condition 1", "Condition 2"],
+      "steps": ["Step 1", "Step 2", "Step 3"],
+      "expectedOutcome": "What should happen",
+      "priority": "critical|high|medium"
+    }
+  ],
+  "testingGaps": [
+    {
+      "area": "Area or type of testing",
+      "description": "What is missing or insufficient",
+      "currentCoverage": "Description of current state",
+      "suggestedImprovement": "How to improve coverage",
+      "impactedBugCount": 5
+    }
+  ],
+  "summary": "High-level summary of findings including escape analysis",
   "recommendations": ["Recommendation 1", "Recommendation 2"]
 }
 
@@ -132,12 +166,47 @@ Return ONLY valid JSON, no markdown code blocks or explanations.`,
       })
     );
 
+    const escapePatterns: EscapePattern[] = (analysis.escapePatterns || []).map(
+      (pattern: any) => ({
+        category: pattern.category || 'edge-case',
+        description: pattern.description,
+        bugKeys: pattern.bugKeys || [],
+        frequency: pattern.frequency || 0,
+      })
+    );
+
+    const suggestedTestScenarios: TestScenario[] = (analysis.suggestedTestScenarios || []).map(
+      (scenario: any) => ({
+        name: scenario.name,
+        description: scenario.description,
+        type: scenario.type || 'integration',
+        targetBugs: scenario.targetBugs || [],
+        preconditions: scenario.preconditions || [],
+        steps: scenario.steps || [],
+        expectedOutcome: scenario.expectedOutcome,
+        priority: scenario.priority || 'medium',
+      })
+    );
+
+    const testingGaps: TestingGap[] = (analysis.testingGaps || []).map(
+      (gap: any) => ({
+        area: gap.area,
+        description: gap.description,
+        currentCoverage: gap.currentCoverage || 'Unknown',
+        suggestedImprovement: gap.suggestedImprovement,
+        impactedBugCount: gap.impactedBugCount || 0,
+      })
+    );
+
     return {
       rootCauseClusters,
       recurringIssues: analysis.recurringIssues || [],
       componentHotspots: analysis.componentHotspots || [],
       summary: analysis.summary || '',
       recommendations: analysis.recommendations || [],
+      escapePatterns,
+      suggestedTestScenarios,
+      testingGaps,
     };
   }
 }

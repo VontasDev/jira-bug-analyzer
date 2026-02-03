@@ -1,5 +1,5 @@
 import { marked } from 'marked';
-import type { PatternAnalysis, BugCluster } from '../types/index.js';
+import type { PatternAnalysis, BugCluster, EscapePattern, TestScenario, TestingGap } from '../types/index.js';
 
 export class ReportFormatter {
   formatMarkdown(analysis: PatternAnalysis): string {
@@ -14,6 +14,9 @@ export class ReportFormatter {
     sections.push(this.formatClustersMarkdown(analysis.rootCauseClusters));
     sections.push(this.formatRecurringIssuesMarkdown(analysis.recurringIssues));
     sections.push(this.formatHotspotsMarkdown(analysis.componentHotspots));
+    sections.push(this.formatEscapePatternsMarkdown(analysis.escapePatterns));
+    sections.push(this.formatTestScenariosMarkdown(analysis.suggestedTestScenarios));
+    sections.push(this.formatTestingGapsMarkdown(analysis.testingGaps));
     sections.push(this.formatRecommendationsMarkdown(analysis.recommendations));
 
     return sections.join('\n\n');
@@ -134,6 +137,99 @@ ${htmlContent}
     const lines = ['## Recommendations'];
     for (let i = 0; i < recommendations.length; i++) {
       lines.push(`${i + 1}. ${recommendations[i]}`);
+    }
+
+    return lines.join('\n');
+  }
+
+  private formatEscapePatternsMarkdown(patterns: EscapePattern[]): string {
+    if (!patterns || patterns.length === 0) {
+      return '## Escape Analysis\n\n*No escape patterns identified.*';
+    }
+
+    const lines = ['## Escape Analysis'];
+    lines.push('\nThis section analyzes WHY bugs escaped SIT testing.\n');
+    lines.push('| Category | Description | Frequency | Affected Bugs |');
+    lines.push('|----------|-------------|-----------|---------------|');
+
+    for (const pattern of patterns) {
+      const category = pattern.category.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const bugs = pattern.bugKeys.map(k => `\`${k}\``).join(', ');
+      lines.push(`| **${category}** | ${pattern.description} | ${pattern.frequency} | ${bugs} |`);
+    }
+
+    return lines.join('\n');
+  }
+
+  private formatTestScenariosMarkdown(scenarios: TestScenario[]): string {
+    if (!scenarios || scenarios.length === 0) {
+      return '## Suggested Test Scenarios\n\n*No test scenarios suggested.*';
+    }
+
+    const lines = ['## Suggested Test Scenarios'];
+    lines.push('\nThese test scenarios would have caught the escaped bugs.\n');
+
+    // Group by priority
+    const critical = scenarios.filter(s => s.priority === 'critical');
+    const high = scenarios.filter(s => s.priority === 'high');
+    const medium = scenarios.filter(s => s.priority === 'medium');
+
+    const formatScenario = (scenario: TestScenario, index: number) => {
+      const scenarioLines: string[] = [];
+      scenarioLines.push(`### ${index}. ${scenario.name}`);
+      scenarioLines.push(`**Priority:** ${scenario.priority.toUpperCase()} | **Type:** ${scenario.type}\n`);
+      scenarioLines.push(scenario.description);
+      scenarioLines.push(`\n**Target Bugs:** ${scenario.targetBugs.map(k => `\`${k}\``).join(', ')}`);
+
+      if (scenario.preconditions.length > 0) {
+        scenarioLines.push('\n**Preconditions:**');
+        scenario.preconditions.forEach(p => scenarioLines.push(`- ${p}`));
+      }
+
+      scenarioLines.push('\n**Steps:**');
+      scenario.steps.forEach((step, i) => scenarioLines.push(`${i + 1}. ${step}`));
+
+      scenarioLines.push(`\n**Expected Outcome:** ${scenario.expectedOutcome}`);
+      scenarioLines.push('');
+      return scenarioLines.join('\n');
+    };
+
+    let idx = 1;
+    if (critical.length > 0) {
+      lines.push('\n---\n#### Critical Priority\n');
+      critical.forEach(s => lines.push(formatScenario(s, idx++)));
+    }
+    if (high.length > 0) {
+      lines.push('\n---\n#### High Priority\n');
+      high.forEach(s => lines.push(formatScenario(s, idx++)));
+    }
+    if (medium.length > 0) {
+      lines.push('\n---\n#### Medium Priority\n');
+      medium.forEach(s => lines.push(formatScenario(s, idx++)));
+    }
+
+    return lines.join('\n');
+  }
+
+  private formatTestingGapsMarkdown(gaps: TestingGap[]): string {
+    if (!gaps || gaps.length === 0) {
+      return '## Testing Gap Analysis\n\n*No testing gaps identified.*';
+    }
+
+    const lines = ['## Testing Gap Analysis'];
+    lines.push('\nAreas where testing coverage needs improvement.\n');
+    lines.push('| Area | Current Coverage | Bugs Impacted | Suggested Improvement |');
+    lines.push('|------|------------------|---------------|----------------------|');
+
+    for (const gap of gaps) {
+      lines.push(`| **${gap.area}** | ${gap.currentCoverage} | ${gap.impactedBugCount} | ${gap.suggestedImprovement} |`);
+    }
+
+    lines.push('\n### Gap Details\n');
+    for (const gap of gaps) {
+      lines.push(`#### ${gap.area}`);
+      lines.push(gap.description);
+      lines.push('');
     }
 
     return lines.join('\n');

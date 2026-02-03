@@ -28,6 +28,8 @@ Analyzes WHY bugs escaped SIT testing:
 - **Test Data Recommendations** - Specific data patterns and edge cases to test
 - **Process Improvements** - SIT process changes with effort/impact ratings
 - **Trend Analysis** - Metrics over time with category breakdowns
+- **Test Automation Opportunities** - Identifies tests that can be automated (unit, integration, hardware-simulation, protocol, etc.)
+- **Linux Port Analysis** - Separate analysis of Linux-related bugs with porting challenges and platform-specific issues
 
 ### Report Features
 - Multiple output formats: terminal, JSON, Markdown, HTML

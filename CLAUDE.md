@@ -6,6 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Jira Bug Analyzer - A TypeScript CLI tool that pulls bugs from Jira Cloud and uses Claude AI to analyze patterns, group bugs by root cause, and identify component hotspots. Specifically designed to analyze **escaped bugs** (bugs that escaped SIT testing) to understand WHY they escaped and suggest test scenarios to prevent future escapes.
 
+## Target Codebase Context
+
+The analyzer is configured for analyzing bugs in a C++ embedded software project:
+- **Language:** C++ embedded software
+- **Hardware:** Custom V8 hardware platform
+- **Deployment:** Public transit buses
+- **Operating Systems:** Windows 7, Windows CE, Linux (active port)
+- **Challenges:** Wide hardware variety, real-time requirements, field deployment constraints
+
 ## Commands
 
 ```bash
@@ -179,6 +188,18 @@ The analysis report includes the following sections:
   - Top affected components
   - Risk trend (improving/stable/worsening)
   - Comparison to typical patterns
+
+- **Test Automation Opportunities** - Tests that could be automated:
+  - Types: unit, integration, hardware-simulation, protocol, regression, stress, config-validation
+  - Suggested tools (Google Test, hardware-in-loop simulators, etc.)
+  - Effort and impact ratings
+  - Tailored for C++ embedded codebase
+
+- **Linux Port Analysis** - Separate analysis of Linux-related bugs:
+  - Auto-detected from summary, description, labels, components
+  - Porting challenges identification
+  - Platform-specific issues (Windows CE API differences, thread models)
+  - Linux-specific recommendations
 
 ## Known Issues & Workarounds
 

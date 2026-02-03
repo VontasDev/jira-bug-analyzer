@@ -13,6 +13,7 @@ import type {
   TestDataRecommendation,
   ProcessImprovement,
   TrendMetrics,
+  QuarterlyMetrics,
   Recommendation,
   AnalysisMode,
   AutomationOpportunity,
@@ -96,6 +97,7 @@ Analyze the following ${bugs.length} bug reports and provide:
 14. Provide trend analysis summary comparing to typical patterns
 15. IMPORTANT: Identify test automation opportunities - what tests could be automated for C++ code with hardware simulation
 16. IMPORTANT: Separately analyze Linux port-related bugs (${linuxBugs.length} detected) - identify porting challenges and platform-specific issues
+17. IMPORTANT: Provide QUARTERLY BREAKDOWN - group bugs by quarter (Q1=Jan-Mar, Q2=Apr-Jun, Q3=Jul-Sep, Q4=Oct-Dec) based on their created date, and compare trends across quarters
 
 Bug Reports:
 ${bugsContext}
@@ -218,12 +220,21 @@ Respond with a JSON object matching this exact structure:
     }
   ],
   "trendMetrics": {
-    "period": "Analysis period (e.g., Q1 2025)",
+    "period": "Analysis period (e.g., 2025 Annual)",
     "totalBugs": ${bugs.length},
     "escapesByCategory": {"edge-case": 3, "environment": 2},
     "topComponents": ["Component1", "Component2"],
     "riskTrend": "improving|stable|worsening",
-    "comparisonToPrevious": "Summary comparison to typical patterns"
+    "comparisonToPrevious": "Summary comparison to typical patterns",
+    "quarterlyBreakdown": [
+      {
+        "quarter": "Q1",
+        "bugCount": 10,
+        "escapesByCategory": {"edge-case": 2, "environment": 1},
+        "topComponents": ["Component1"],
+        "bugKeys": ["BUG-1", "BUG-2"]
+      }
+    ]
   },
   "summary": "High-level summary of findings including escape analysis",
   "recommendations": [
@@ -571,6 +582,16 @@ Return ONLY valid JSON, no markdown code blocks or explanations.`;
       })
     );
 
+    const quarterlyBreakdown: QuarterlyMetrics[] = (analysis.trendMetrics?.quarterlyBreakdown || []).map(
+      (q: any) => ({
+        quarter: q.quarter || 'Q1',
+        bugCount: q.bugCount || 0,
+        escapesByCategory: q.escapesByCategory || {},
+        topComponents: q.topComponents || [],
+        bugKeys: q.bugKeys || [],
+      })
+    );
+
     const trendMetrics: TrendMetrics = {
       period: analysis.trendMetrics?.period || 'Current Period',
       totalBugs: analysis.trendMetrics?.totalBugs || bugs.length,
@@ -578,6 +599,7 @@ Return ONLY valid JSON, no markdown code blocks or explanations.`;
       topComponents: analysis.trendMetrics?.topComponents || [],
       riskTrend: analysis.trendMetrics?.riskTrend || 'stable',
       comparisonToPrevious: analysis.trendMetrics?.comparisonToPrevious || '',
+      quarterlyBreakdown: quarterlyBreakdown.length > 0 ? quarterlyBreakdown : undefined,
     };
 
     const recommendations: Recommendation[] = (analysis.recommendations || []).map(

@@ -163,6 +163,14 @@ export interface ProcessImprovement {
   impact: 'low' | 'medium' | 'high';
 }
 
+export interface QuarterlyMetrics {
+  quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+  bugCount: number;
+  escapesByCategory: Record<string, number>;
+  topComponents: string[];
+  bugKeys: string[];
+}
+
 export interface TrendMetrics {
   period: string;
   totalBugs: number;
@@ -170,6 +178,7 @@ export interface TrendMetrics {
   topComponents: string[];
   riskTrend: 'improving' | 'stable' | 'worsening';
   comparisonToPrevious: string;
+  quarterlyBreakdown?: QuarterlyMetrics[];
 }
 
 export interface Recommendation {

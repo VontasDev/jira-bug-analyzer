@@ -12,6 +12,7 @@ import type {
   TestDataRecommendation,
   ProcessImprovement,
   TrendMetrics,
+  QuarterlyMetrics,
   Recommendation,
   AutomationOpportunity,
   LinuxPortAnalysis,
@@ -514,8 +515,59 @@ ${htmlContent}
     lines.push(`**Total Bugs Analyzed:** ${metrics.totalBugs}`);
     lines.push(`**Overall Trend:** ${trendEmoji}\n`);
 
+    // Quarterly breakdown section
+    if (metrics.quarterlyBreakdown && metrics.quarterlyBreakdown.length > 0) {
+      lines.push('### Quarterly Breakdown\n');
+      lines.push('| Quarter | Bug Count | Top Categories | Top Components |');
+      lines.push('|---------|-----------|----------------|----------------|');
+
+      for (const q of metrics.quarterlyBreakdown) {
+        const topCats = Object.entries(q.escapesByCategory)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 2)
+          .map(([cat, count]) => `${cat.replace(/-/g, ' ')} (${count})`)
+          .join(', ') || 'N/A';
+        const topComps = q.topComponents.slice(0, 2).join(', ') || 'N/A';
+        lines.push(`| **${q.quarter}** | ${q.bugCount} | ${topCats} | ${topComps} |`);
+      }
+      lines.push('');
+
+      // Quarter-over-quarter comparison
+      lines.push('### Quarter-over-Quarter Trends\n');
+      const quarters = metrics.quarterlyBreakdown;
+      for (let i = 1; i < quarters.length; i++) {
+        const prev = quarters[i - 1];
+        const curr = quarters[i];
+        const diff = curr.bugCount - prev.bugCount;
+        const diffText = diff > 0 ? `+${diff}` : diff.toString();
+        const arrow = diff > 0 ? '⬆️' : diff < 0 ? '⬇️' : '➡️';
+        lines.push(`- **${prev.quarter} → ${curr.quarter}:** ${arrow} ${diffText} bugs (${prev.bugCount} → ${curr.bugCount})`);
+      }
+      lines.push('');
+
+      // Detailed quarterly sections
+      lines.push('### Quarterly Details\n');
+      for (const q of quarters) {
+        lines.push(`#### ${q.quarter}`);
+        lines.push(`**Bugs:** ${q.bugCount}`);
+        if (q.bugKeys.length > 0) {
+          lines.push(`**Bug Keys:** ${this.linkBugKeys(q.bugKeys)}`);
+        }
+        if (Object.keys(q.escapesByCategory).length > 0) {
+          lines.push('\n**Escapes by Category:**');
+          for (const [cat, count] of Object.entries(q.escapesByCategory)) {
+            lines.push(`- ${cat.replace(/-/g, ' ')}: ${count}`);
+          }
+        }
+        if (q.topComponents.length > 0) {
+          lines.push(`\n**Top Components:** ${q.topComponents.join(', ')}`);
+        }
+        lines.push('');
+      }
+    }
+
     if (Object.keys(metrics.escapesByCategory).length > 0) {
-      lines.push('### Escapes by Category\n');
+      lines.push('### Annual Escapes by Category\n');
       lines.push('| Category | Count |');
       lines.push('|----------|-------|');
       for (const [category, count] of Object.entries(metrics.escapesByCategory)) {
@@ -526,7 +578,7 @@ ${htmlContent}
     }
 
     if (metrics.topComponents.length > 0) {
-      lines.push('### Top Affected Components\n');
+      lines.push('### Top Affected Components (Annual)\n');
       metrics.topComponents.forEach((comp, i) => {
         lines.push(`${i + 1}. ${comp}`);
       });

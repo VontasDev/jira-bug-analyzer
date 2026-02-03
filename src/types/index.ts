@@ -53,6 +53,13 @@ export interface PatternAnalysis {
   escapePatterns: EscapePattern[];
   suggestedTestScenarios: TestScenario[];
   testingGaps: TestingGap[];
+  defectInjectionPoints: DefectInjectionPoint[];
+  componentRiskScores: ComponentRiskScore[];
+  regressionAnalysis: RegressionAnalysis[];
+  customerImpacts: CustomerImpact[];
+  testDataRecommendations: TestDataRecommendation[];
+  processImprovements: ProcessImprovement[];
+  trendMetrics: TrendMetrics;
 }
 
 export interface RecurringIssue {
@@ -93,6 +100,67 @@ export interface TestingGap {
   currentCoverage: string;
   suggestedImprovement: string;
   impactedBugCount: number;
+}
+
+export interface DefectInjectionPoint {
+  phase: 'requirements' | 'design' | 'coding' | 'integration' | 'deployment';
+  description: string;
+  bugKeys: string[];
+  frequency: number;
+  preventionStrategy: string;
+}
+
+export interface ComponentRiskScore {
+  component: string;
+  riskScore: number;  // 1-10
+  escapeHistory: number;
+  complexityFactor: 'low' | 'medium' | 'high';
+  changeFrequency: 'low' | 'medium' | 'high';
+  recommendation: string;
+}
+
+export interface RegressionAnalysis {
+  isRegression: boolean;
+  bugKey: string;
+  relatedBugKeys: string[];
+  regressionType: 'exact' | 'similar' | 'related-area';
+  likelyCause: string;
+}
+
+export interface CustomerImpact {
+  bugKey: string;
+  impactLevel: 'critical' | 'high' | 'medium' | 'low';
+  affectedUsers: 'all' | 'many' | 'some' | 'few';
+  businessFunction: string;
+  workaroundAvailable: boolean;
+  estimatedCost: 'high' | 'medium' | 'low';
+}
+
+export interface TestDataRecommendation {
+  category: string;
+  description: string;
+  dataPatterns: string[];
+  edgeCases: string[];
+  targetBugs: string[];
+  priority: 'critical' | 'high' | 'medium';
+}
+
+export interface ProcessImprovement {
+  area: 'code-review' | 'testing' | 'deployment' | 'requirements' | 'environment';
+  suggestion: string;
+  rationale: string;
+  targetBugs: string[];
+  effort: 'low' | 'medium' | 'high';
+  impact: 'low' | 'medium' | 'high';
+}
+
+export interface TrendMetrics {
+  period: string;
+  totalBugs: number;
+  escapesByCategory: Record<string, number>;
+  topComponents: string[];
+  riskTrend: 'improving' | 'stable' | 'worsening';
+  comparisonToPrevious: string;
 }
 
 export interface FetchOptions {

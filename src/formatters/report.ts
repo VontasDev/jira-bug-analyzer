@@ -1,5 +1,18 @@
 import { marked } from 'marked';
-import type { PatternAnalysis, BugCluster, EscapePattern, TestScenario, TestingGap } from '../types/index.js';
+import type {
+  PatternAnalysis,
+  BugCluster,
+  EscapePattern,
+  TestScenario,
+  TestingGap,
+  DefectInjectionPoint,
+  ComponentRiskScore,
+  RegressionAnalysis,
+  CustomerImpact,
+  TestDataRecommendation,
+  ProcessImprovement,
+  TrendMetrics,
+} from '../types/index.js';
 
 export class ReportFormatter {
   formatMarkdown(analysis: PatternAnalysis): string {
@@ -17,6 +30,13 @@ export class ReportFormatter {
     sections.push(this.formatEscapePatternsMarkdown(analysis.escapePatterns));
     sections.push(this.formatTestScenariosMarkdown(analysis.suggestedTestScenarios));
     sections.push(this.formatTestingGapsMarkdown(analysis.testingGaps));
+    sections.push(this.formatDefectInjectionMarkdown(analysis.defectInjectionPoints));
+    sections.push(this.formatRiskScoresMarkdown(analysis.componentRiskScores));
+    sections.push(this.formatRegressionAnalysisMarkdown(analysis.regressionAnalysis));
+    sections.push(this.formatCustomerImpactMarkdown(analysis.customerImpacts));
+    sections.push(this.formatTestDataRecommendationsMarkdown(analysis.testDataRecommendations));
+    sections.push(this.formatProcessImprovementsMarkdown(analysis.processImprovements));
+    sections.push(this.formatTrendMetricsMarkdown(analysis.trendMetrics));
     sections.push(this.formatRecommendationsMarkdown(analysis.recommendations));
 
     return sections.join('\n\n');
@@ -230,6 +250,244 @@ ${htmlContent}
       lines.push(`#### ${gap.area}`);
       lines.push(gap.description);
       lines.push('');
+    }
+
+    return lines.join('\n');
+  }
+
+  private formatDefectInjectionMarkdown(points: DefectInjectionPoint[]): string {
+    if (!points || points.length === 0) {
+      return '## Defect Injection Analysis\n\n*No defect injection points identified.*';
+    }
+
+    const lines = ['## Defect Injection Analysis'];
+    lines.push('\nWhere in the SDLC defects were introduced.\n');
+    lines.push('| Phase | Frequency | Bugs | Prevention Strategy |');
+    lines.push('|-------|-----------|------|---------------------|');
+
+    const phaseOrder = ['requirements', 'design', 'coding', 'integration', 'deployment'];
+    const sortedPoints = [...points].sort((a, b) =>
+      phaseOrder.indexOf(a.phase) - phaseOrder.indexOf(b.phase)
+    );
+
+    for (const point of sortedPoints) {
+      const phaseName = point.phase.charAt(0).toUpperCase() + point.phase.slice(1);
+      const bugs = point.bugKeys.map(k => `\`${k}\``).join(', ');
+      lines.push(`| **${phaseName}** | ${point.frequency} | ${bugs} | ${point.preventionStrategy} |`);
+    }
+
+    lines.push('\n### Phase Details\n');
+    for (const point of sortedPoints) {
+      const phaseName = point.phase.charAt(0).toUpperCase() + point.phase.slice(1);
+      lines.push(`#### ${phaseName} Phase`);
+      lines.push(point.description);
+      lines.push('');
+    }
+
+    return lines.join('\n');
+  }
+
+  private formatRiskScoresMarkdown(scores: ComponentRiskScore[]): string {
+    if (!scores || scores.length === 0) {
+      return '## Component Risk Scores\n\n*No component risk scores calculated.*';
+    }
+
+    const lines = ['## Component Risk Scores'];
+    lines.push('\nRisk assessment for components based on escape history, complexity, and change frequency.\n');
+    lines.push('| Component | Risk Score | Escapes | Complexity | Change Freq | Recommendation |');
+    lines.push('|-----------|------------|---------|------------|-------------|----------------|');
+
+    const sortedScores = [...scores].sort((a, b) => b.riskScore - a.riskScore);
+
+    for (const score of sortedScores) {
+      const riskEmoji = score.riskScore >= 8 ? '🔴' : score.riskScore >= 5 ? '🟡' : '🟢';
+      lines.push(`| **${score.component}** | ${riskEmoji} ${score.riskScore}/10 | ${score.escapeHistory} | ${score.complexityFactor} | ${score.changeFrequency} | ${score.recommendation} |`);
+    }
+
+    return lines.join('\n');
+  }
+
+  private formatRegressionAnalysisMarkdown(regressions: RegressionAnalysis[]): string {
+    if (!regressions || regressions.length === 0) {
+      return '## Regression Analysis\n\n*No regressions identified.*';
+    }
+
+    const actualRegressions = regressions.filter(r => r.isRegression);
+    if (actualRegressions.length === 0) {
+      return '## Regression Analysis\n\n*No regressions identified among the analyzed bugs.*';
+    }
+
+    const lines = ['## Regression Analysis'];
+    lines.push(`\n${actualRegressions.length} bug(s) identified as potential regressions.\n`);
+    lines.push('| Bug | Type | Related Bugs | Likely Cause |');
+    lines.push('|-----|------|--------------|--------------|');
+
+    for (const reg of actualRegressions) {
+      const typeName = reg.regressionType.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const related = reg.relatedBugKeys.map(k => `\`${k}\``).join(', ') || 'N/A';
+      lines.push(`| \`${reg.bugKey}\` | ${typeName} | ${related} | ${reg.likelyCause} |`);
+    }
+
+    return lines.join('\n');
+  }
+
+  private formatCustomerImpactMarkdown(impacts: CustomerImpact[]): string {
+    if (!impacts || impacts.length === 0) {
+      return '## Customer Impact Analysis\n\n*No customer impact data available.*';
+    }
+
+    const lines = ['## Customer Impact Analysis'];
+    lines.push('\nBusiness impact assessment for escaped bugs.\n');
+
+    // Group by impact level
+    const critical = impacts.filter(i => i.impactLevel === 'critical');
+    const high = impacts.filter(i => i.impactLevel === 'high');
+    const medium = impacts.filter(i => i.impactLevel === 'medium');
+    const low = impacts.filter(i => i.impactLevel === 'low');
+
+    lines.push('| Bug | Impact | Users Affected | Business Function | Workaround | Cost |');
+    lines.push('|-----|--------|----------------|-------------------|------------|------|');
+
+    const formatImpact = (impact: CustomerImpact) => {
+      const workaround = impact.workaroundAvailable ? '✅ Yes' : '❌ No';
+      const impactEmoji = impact.impactLevel === 'critical' ? '🔴' :
+                          impact.impactLevel === 'high' ? '🟠' :
+                          impact.impactLevel === 'medium' ? '🟡' : '🟢';
+      return `| \`${impact.bugKey}\` | ${impactEmoji} ${impact.impactLevel.toUpperCase()} | ${impact.affectedUsers} | ${impact.businessFunction} | ${workaround} | ${impact.estimatedCost} |`;
+    };
+
+    critical.forEach(i => lines.push(formatImpact(i)));
+    high.forEach(i => lines.push(formatImpact(i)));
+    medium.forEach(i => lines.push(formatImpact(i)));
+    low.forEach(i => lines.push(formatImpact(i)));
+
+    return lines.join('\n');
+  }
+
+  private formatTestDataRecommendationsMarkdown(recommendations: TestDataRecommendation[]): string {
+    if (!recommendations || recommendations.length === 0) {
+      return '## Test Data Recommendations\n\n*No test data recommendations available.*';
+    }
+
+    const lines = ['## Test Data Recommendations'];
+    lines.push('\nData patterns and edge cases that would catch escaped bugs.\n');
+
+    const critical = recommendations.filter(r => r.priority === 'critical');
+    const high = recommendations.filter(r => r.priority === 'high');
+    const medium = recommendations.filter(r => r.priority === 'medium');
+
+    const formatRecommendation = (rec: TestDataRecommendation, index: number) => {
+      const recLines: string[] = [];
+      recLines.push(`### ${index}. ${rec.category}`);
+      recLines.push(`**Priority:** ${rec.priority.toUpperCase()}\n`);
+      recLines.push(rec.description);
+      recLines.push(`\n**Target Bugs:** ${rec.targetBugs.map(k => `\`${k}\``).join(', ')}`);
+
+      if (rec.dataPatterns.length > 0) {
+        recLines.push('\n**Data Patterns to Test:**');
+        rec.dataPatterns.forEach(p => recLines.push(`- ${p}`));
+      }
+
+      if (rec.edgeCases.length > 0) {
+        recLines.push('\n**Edge Cases:**');
+        rec.edgeCases.forEach(e => recLines.push(`- ${e}`));
+      }
+
+      recLines.push('');
+      return recLines.join('\n');
+    };
+
+    let idx = 1;
+    if (critical.length > 0) {
+      lines.push('\n---\n#### Critical Priority\n');
+      critical.forEach(r => lines.push(formatRecommendation(r, idx++)));
+    }
+    if (high.length > 0) {
+      lines.push('\n---\n#### High Priority\n');
+      high.forEach(r => lines.push(formatRecommendation(r, idx++)));
+    }
+    if (medium.length > 0) {
+      lines.push('\n---\n#### Medium Priority\n');
+      medium.forEach(r => lines.push(formatRecommendation(r, idx++)));
+    }
+
+    return lines.join('\n');
+  }
+
+  private formatProcessImprovementsMarkdown(improvements: ProcessImprovement[]): string {
+    if (!improvements || improvements.length === 0) {
+      return '## Process Improvement Suggestions\n\n*No process improvements suggested.*';
+    }
+
+    const lines = ['## Process Improvement Suggestions'];
+    lines.push('\nSIT process changes to prevent future escapes.\n');
+    lines.push('| Area | Suggestion | Effort | Impact | Target Bugs |');
+    lines.push('|------|------------|--------|--------|-------------|');
+
+    // Sort by impact (high first) then effort (low first)
+    const impactOrder = { high: 0, medium: 1, low: 2 };
+    const effortOrder = { low: 0, medium: 1, high: 2 };
+    const sortedImprovements = [...improvements].sort((a, b) => {
+      const impactDiff = impactOrder[a.impact] - impactOrder[b.impact];
+      if (impactDiff !== 0) return impactDiff;
+      return effortOrder[a.effort] - effortOrder[b.effort];
+    });
+
+    for (const imp of sortedImprovements) {
+      const areaName = imp.area.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const effortEmoji = imp.effort === 'low' ? '🟢' : imp.effort === 'medium' ? '🟡' : '🔴';
+      const impactEmoji = imp.impact === 'high' ? '⬆️' : imp.impact === 'medium' ? '➡️' : '⬇️';
+      const bugs = imp.targetBugs.map(k => `\`${k}\``).join(', ');
+      lines.push(`| **${areaName}** | ${imp.suggestion} | ${effortEmoji} ${imp.effort} | ${impactEmoji} ${imp.impact} | ${bugs} |`);
+    }
+
+    lines.push('\n### Improvement Details\n');
+    for (const imp of sortedImprovements) {
+      const areaName = imp.area.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      lines.push(`#### ${areaName}: ${imp.suggestion}`);
+      lines.push(`**Rationale:** ${imp.rationale}`);
+      lines.push('');
+    }
+
+    return lines.join('\n');
+  }
+
+  private formatTrendMetricsMarkdown(metrics: TrendMetrics): string {
+    if (!metrics) {
+      return '## Trend Analysis\n\n*No trend data available.*';
+    }
+
+    const lines = ['## Trend Analysis'];
+    lines.push(`\n**Analysis Period:** ${metrics.period}\n`);
+
+    const trendEmoji = metrics.riskTrend === 'improving' ? '📈 Improving' :
+                       metrics.riskTrend === 'worsening' ? '📉 Worsening' : '➡️ Stable';
+
+    lines.push(`**Total Bugs Analyzed:** ${metrics.totalBugs}`);
+    lines.push(`**Overall Trend:** ${trendEmoji}\n`);
+
+    if (Object.keys(metrics.escapesByCategory).length > 0) {
+      lines.push('### Escapes by Category\n');
+      lines.push('| Category | Count |');
+      lines.push('|----------|-------|');
+      for (const [category, count] of Object.entries(metrics.escapesByCategory)) {
+        const categoryName = category.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        lines.push(`| ${categoryName} | ${count} |`);
+      }
+      lines.push('');
+    }
+
+    if (metrics.topComponents.length > 0) {
+      lines.push('### Top Affected Components\n');
+      metrics.topComponents.forEach((comp, i) => {
+        lines.push(`${i + 1}. ${comp}`);
+      });
+      lines.push('');
+    }
+
+    if (metrics.comparisonToPrevious) {
+      lines.push('### Comparison Summary\n');
+      lines.push(metrics.comparisonToPrevious);
     }
 
     return lines.join('\n');

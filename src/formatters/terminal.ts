@@ -1,6 +1,16 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import type { PatternAnalysis, JiraBug, BugCluster, EscapePattern, TestScenario, TestingGap } from '../types/index.js';
+import type {
+  PatternAnalysis,
+  JiraBug,
+  BugCluster,
+  EscapePattern,
+  TestScenario,
+  TestingGap,
+  ComponentRiskScore,
+  CustomerImpact,
+  ProcessImprovement,
+} from '../types/index.js';
 
 export class TerminalFormatter {
   formatAnalysis(analysis: PatternAnalysis): string {
@@ -14,6 +24,9 @@ export class TerminalFormatter {
     sections.push(this.formatEscapePatterns(analysis.escapePatterns));
     sections.push(this.formatTestScenarios(analysis.suggestedTestScenarios));
     sections.push(this.formatTestingGaps(analysis.testingGaps));
+    sections.push(this.formatRiskScores(analysis.componentRiskScores));
+    sections.push(this.formatCustomerImpacts(analysis.customerImpacts));
+    sections.push(this.formatProcessImprovements(analysis.processImprovements));
     sections.push(this.formatRecommendations(analysis.recommendations));
 
     return sections.join('\n\n');
@@ -243,6 +256,114 @@ export class TerminalFormatter {
     }
 
     return chalk.bold.yellow('\nTesting Gap Analysis:\n') + table.toString();
+  }
+
+  private formatRiskScores(scores: ComponentRiskScore[]): string {
+    if (!scores || scores.length === 0) {
+      return chalk.yellow('No component risk scores available.');
+    }
+
+    const lines = [chalk.bold.red('\nComponent Risk Scores:\n')];
+
+    // Show top 5 highest risk components
+    const topRisks = [...scores].sort((a, b) => b.riskScore - a.riskScore).slice(0, 5);
+
+    for (const score of topRisks) {
+      const riskColor = score.riskScore >= 8 ? chalk.bgRed.white :
+                        score.riskScore >= 5 ? chalk.yellow : chalk.green;
+
+      lines.push(
+        chalk.bold(`  ${score.component}`) +
+        ` [${riskColor(`Risk: ${score.riskScore}/10`)}]` +
+        chalk.gray(` (${score.escapeHistory} escapes)`)
+      );
+      lines.push(chalk.gray(`    Complexity: ${score.complexityFactor} | Changes: ${score.changeFrequency}`));
+      lines.push(chalk.cyan(`    ${score.recommendation}`));
+      lines.push('');
+    }
+
+    if (scores.length > 5) {
+      lines.push(chalk.gray(`  ... and ${scores.length - 5} more components (see full report)`));
+    }
+
+    return lines.join('\n');
+  }
+
+  private formatCustomerImpacts(impacts: CustomerImpact[]): string {
+    if (!impacts || impacts.length === 0) {
+      return chalk.yellow('No customer impact data available.');
+    }
+
+    // Show only critical and high impact bugs
+    const highImpact = impacts.filter(i => i.impactLevel === 'critical' || i.impactLevel === 'high');
+    if (highImpact.length === 0) {
+      return chalk.green('No critical or high-impact bugs identified.');
+    }
+
+    const lines = [chalk.bold.magenta('\nHigh-Impact Bugs:\n')];
+
+    for (const impact of highImpact.slice(0, 5)) {
+      const impactColor = impact.impactLevel === 'critical' ? chalk.bgRed.white : chalk.red;
+      const workaround = impact.workaroundAvailable ? chalk.green('✓ workaround') : chalk.red('✗ no workaround');
+
+      lines.push(
+        chalk.bold(`  ${impact.bugKey}`) +
+        ` [${impactColor(impact.impactLevel.toUpperCase())}]` +
+        ` - ${workaround}`
+      );
+      lines.push(chalk.gray(`    Business: ${impact.businessFunction}`));
+      lines.push(chalk.cyan(`    Users: ${impact.affectedUsers} | Cost: ${impact.estimatedCost}`));
+      lines.push('');
+    }
+
+    if (highImpact.length > 5) {
+      lines.push(chalk.gray(`  ... and ${highImpact.length - 5} more high-impact bugs (see full report)`));
+    }
+
+    return lines.join('\n');
+  }
+
+  private formatProcessImprovements(improvements: ProcessImprovement[]): string {
+    if (!improvements || improvements.length === 0) {
+      return chalk.yellow('No process improvements suggested.');
+    }
+
+    const lines = [chalk.bold.cyan('\nTop Process Improvements:\n')];
+
+    // Show high-impact, low-effort improvements first (quick wins)
+    const quickWins = improvements.filter(i => i.impact === 'high' && i.effort === 'low');
+    const highImpact = improvements.filter(i => i.impact === 'high' && i.effort !== 'low');
+
+    const toShow = [...quickWins, ...highImpact].slice(0, 5);
+    if (toShow.length === 0) {
+      toShow.push(...improvements.slice(0, 3));
+    }
+
+    for (const imp of toShow) {
+      const areaColor = {
+        'code-review': chalk.blue,
+        'testing': chalk.green,
+        'deployment': chalk.yellow,
+        'requirements': chalk.magenta,
+        'environment': chalk.cyan,
+      }[imp.area] || chalk.white;
+
+      const effortIcon = imp.effort === 'low' ? '⚡' : imp.effort === 'medium' ? '⏱️' : '🔨';
+      const impactIcon = imp.impact === 'high' ? '↑↑' : imp.impact === 'medium' ? '↑' : '→';
+
+      lines.push(
+        chalk.bold(`  ${areaColor(imp.area)}`) +
+        chalk.gray(` [${effortIcon} ${imp.effort} effort | ${impactIcon} ${imp.impact} impact]`)
+      );
+      lines.push(chalk.white(`    ${imp.suggestion}`));
+      lines.push('');
+    }
+
+    if (improvements.length > toShow.length) {
+      lines.push(chalk.gray(`  ... and ${improvements.length - toShow.length} more suggestions (see full report)`));
+    }
+
+    return lines.join('\n');
   }
 
   formatBugList(bugs: JiraBug[]): string {

@@ -1,5 +1,19 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { JiraBug, BugCluster, PatternAnalysis, EscapePattern, TestScenario, TestingGap } from '../types/index.js';
+import type {
+  JiraBug,
+  BugCluster,
+  PatternAnalysis,
+  EscapePattern,
+  TestScenario,
+  TestingGap,
+  DefectInjectionPoint,
+  ComponentRiskScore,
+  RegressionAnalysis,
+  CustomerImpact,
+  TestDataRecommendation,
+  ProcessImprovement,
+  TrendMetrics,
+} from '../types/index.js';
 
 export class ClaudeService {
   private client: Anthropic;
@@ -30,6 +44,13 @@ Analyze the following ${bugs.length} bug reports and provide:
 5. Analyze WHY these bugs escaped SIT testing - categorize the escape patterns
 6. Suggest specific test scenarios that would have caught each bug cluster
 7. Identify testing methodology gaps (what types of tests are missing)
+8. Analyze defect injection points - where in the SDLC were bugs introduced (requirements, design, coding, integration, deployment)
+9. Calculate risk scores for components based on escape patterns, complexity, and change frequency
+10. Identify regression bugs - issues that appear to be regressions of previously fixed problems
+11. Assess customer impact of each bug (business function affected, user impact, workaround availability)
+12. Recommend specific test data patterns that would catch these bugs
+13. Suggest process improvements for code review, testing, and deployment
+14. Provide trend analysis summary comparing to typical patterns
 
 Bug Reports:
 ${bugsContext}
@@ -93,6 +114,72 @@ Respond with a JSON object matching this exact structure:
       "impactedBugCount": 5
     }
   ],
+  "defectInjectionPoints": [
+    {
+      "phase": "requirements|design|coding|integration|deployment",
+      "description": "How defects were introduced at this phase",
+      "bugKeys": ["BUG-1", "BUG-2"],
+      "frequency": 3,
+      "preventionStrategy": "How to prevent defects at this phase"
+    }
+  ],
+  "componentRiskScores": [
+    {
+      "component": "Component name",
+      "riskScore": 8,
+      "escapeHistory": 5,
+      "complexityFactor": "low|medium|high",
+      "changeFrequency": "low|medium|high",
+      "recommendation": "Risk mitigation recommendation"
+    }
+  ],
+  "regressionAnalysis": [
+    {
+      "isRegression": true,
+      "bugKey": "BUG-1",
+      "relatedBugKeys": ["BUG-OLD-1"],
+      "regressionType": "exact|similar|related-area",
+      "likelyCause": "What likely caused the regression"
+    }
+  ],
+  "customerImpacts": [
+    {
+      "bugKey": "BUG-1",
+      "impactLevel": "critical|high|medium|low",
+      "affectedUsers": "all|many|some|few",
+      "businessFunction": "What business function is affected",
+      "workaroundAvailable": true,
+      "estimatedCost": "high|medium|low"
+    }
+  ],
+  "testDataRecommendations": [
+    {
+      "category": "Category of test data",
+      "description": "What data patterns to test",
+      "dataPatterns": ["Pattern 1", "Pattern 2"],
+      "edgeCases": ["Edge case 1", "Edge case 2"],
+      "targetBugs": ["BUG-1", "BUG-2"],
+      "priority": "critical|high|medium"
+    }
+  ],
+  "processImprovements": [
+    {
+      "area": "code-review|testing|deployment|requirements|environment",
+      "suggestion": "Specific process improvement",
+      "rationale": "Why this would help",
+      "targetBugs": ["BUG-1", "BUG-2"],
+      "effort": "low|medium|high",
+      "impact": "low|medium|high"
+    }
+  ],
+  "trendMetrics": {
+    "period": "Analysis period (e.g., Q1 2025)",
+    "totalBugs": ${bugs.length},
+    "escapesByCategory": {"edge-case": 3, "environment": 2},
+    "topComponents": ["Component1", "Component2"],
+    "riskTrend": "improving|stable|worsening",
+    "comparisonToPrevious": "Summary comparison to typical patterns"
+  },
   "summary": "High-level summary of findings including escape analysis",
   "recommendations": ["Recommendation 1", "Recommendation 2"]
 }
@@ -198,6 +285,79 @@ Return ONLY valid JSON, no markdown code blocks or explanations.`,
       })
     );
 
+    const defectInjectionPoints: DefectInjectionPoint[] = (analysis.defectInjectionPoints || []).map(
+      (point: any) => ({
+        phase: point.phase || 'coding',
+        description: point.description || '',
+        bugKeys: point.bugKeys || [],
+        frequency: point.frequency || 0,
+        preventionStrategy: point.preventionStrategy || '',
+      })
+    );
+
+    const componentRiskScores: ComponentRiskScore[] = (analysis.componentRiskScores || []).map(
+      (score: any) => ({
+        component: score.component || '',
+        riskScore: score.riskScore || 0,
+        escapeHistory: score.escapeHistory || 0,
+        complexityFactor: score.complexityFactor || 'medium',
+        changeFrequency: score.changeFrequency || 'medium',
+        recommendation: score.recommendation || '',
+      })
+    );
+
+    const regressionAnalysis: RegressionAnalysis[] = (analysis.regressionAnalysis || []).map(
+      (reg: any) => ({
+        isRegression: reg.isRegression || false,
+        bugKey: reg.bugKey || '',
+        relatedBugKeys: reg.relatedBugKeys || [],
+        regressionType: reg.regressionType || 'similar',
+        likelyCause: reg.likelyCause || '',
+      })
+    );
+
+    const customerImpacts: CustomerImpact[] = (analysis.customerImpacts || []).map(
+      (impact: any) => ({
+        bugKey: impact.bugKey || '',
+        impactLevel: impact.impactLevel || 'medium',
+        affectedUsers: impact.affectedUsers || 'some',
+        businessFunction: impact.businessFunction || '',
+        workaroundAvailable: impact.workaroundAvailable || false,
+        estimatedCost: impact.estimatedCost || 'medium',
+      })
+    );
+
+    const testDataRecommendations: TestDataRecommendation[] = (analysis.testDataRecommendations || []).map(
+      (rec: any) => ({
+        category: rec.category || '',
+        description: rec.description || '',
+        dataPatterns: rec.dataPatterns || [],
+        edgeCases: rec.edgeCases || [],
+        targetBugs: rec.targetBugs || [],
+        priority: rec.priority || 'medium',
+      })
+    );
+
+    const processImprovements: ProcessImprovement[] = (analysis.processImprovements || []).map(
+      (imp: any) => ({
+        area: imp.area || 'testing',
+        suggestion: imp.suggestion || '',
+        rationale: imp.rationale || '',
+        targetBugs: imp.targetBugs || [],
+        effort: imp.effort || 'medium',
+        impact: imp.impact || 'medium',
+      })
+    );
+
+    const trendMetrics: TrendMetrics = {
+      period: analysis.trendMetrics?.period || 'Current Period',
+      totalBugs: analysis.trendMetrics?.totalBugs || bugs.length,
+      escapesByCategory: analysis.trendMetrics?.escapesByCategory || {},
+      topComponents: analysis.trendMetrics?.topComponents || [],
+      riskTrend: analysis.trendMetrics?.riskTrend || 'stable',
+      comparisonToPrevious: analysis.trendMetrics?.comparisonToPrevious || '',
+    };
+
     return {
       rootCauseClusters,
       recurringIssues: analysis.recurringIssues || [],
@@ -207,6 +367,13 @@ Return ONLY valid JSON, no markdown code blocks or explanations.`,
       escapePatterns,
       suggestedTestScenarios,
       testingGaps,
+      defectInjectionPoints,
+      componentRiskScores,
+      regressionAnalysis,
+      customerImpacts,
+      testDataRecommendations,
+      processImprovements,
+      trendMetrics,
     };
   }
 }

@@ -12,9 +12,19 @@ import type {
   TestDataRecommendation,
   ProcessImprovement,
   TrendMetrics,
+  Recommendation,
 } from '../types/index.js';
 
+const JIRA_BASE_URL = 'https://vontas.atlassian.net/browse';
+
 export class ReportFormatter {
+  private linkBugKey(key: string): string {
+    return `[${key}](${JIRA_BASE_URL}/${key})`;
+  }
+
+  private linkBugKeys(keys: string[]): string {
+    return keys.map(k => this.linkBugKey(k)).join(', ');
+  }
   formatMarkdown(analysis: PatternAnalysis): string {
     const sections: string[] = [];
 
@@ -105,7 +115,7 @@ ${htmlContent}
       lines.push(`**Severity:** ${cluster.severity.toUpperCase()}\n`);
       lines.push(cluster.description);
       lines.push(`\n**Root Cause:** ${cluster.rootCause}`);
-      lines.push(`\n**Affected Bugs:** ${cluster.bugs.map((b) => `\`${b.key}\``).join(', ')}`);
+      lines.push(`\n**Affected Bugs:** ${cluster.bugs.map((b) => this.linkBugKey(b.key)).join(', ')}`);
       lines.push(`\n**Components:** ${cluster.affectedComponents.join(', ') || 'N/A'}`);
       lines.push(`\n**Suggested Fix:** ${cluster.suggestedFix}`);
       lines.push('');
@@ -124,7 +134,8 @@ ${htmlContent}
     lines.push('|---------|-------------|------|----------|');
 
     for (const issue of issues) {
-      const bugs = issue.bugKeys?.join(', ') || issue.bugs?.join(', ') || '';
+      const bugKeys = issue.bugKeys || issue.bugs || [];
+      const bugs = this.linkBugKeys(bugKeys);
       lines.push(`| ${issue.pattern} | ${issue.occurrences} | ${bugs} | ${issue.timespan} |`);
     }
 
@@ -149,14 +160,47 @@ ${htmlContent}
     return lines.join('\n');
   }
 
-  private formatRecommendationsMarkdown(recommendations: string[]): string {
-    if (recommendations.length === 0) {
+  private formatRecommendationsMarkdown(recommendations: Recommendation[]): string {
+    if (!recommendations || recommendations.length === 0) {
       return '';
     }
 
     const lines = ['## Recommendations'];
-    for (let i = 0; i < recommendations.length; i++) {
-      lines.push(`${i + 1}. ${recommendations[i]}`);
+    lines.push('\nPrioritized actions to prevent future escape bugs.\n');
+
+    // Group by priority
+    const critical = recommendations.filter(r => r.priority === 'critical');
+    const high = recommendations.filter(r => r.priority === 'high');
+    const medium = recommendations.filter(r => r.priority === 'medium');
+
+    let idx = 1;
+    const formatRec = (rec: Recommendation) => {
+      const recLines: string[] = [];
+      const priorityEmoji = rec.priority === 'critical' ? '🔴' :
+                            rec.priority === 'high' ? '🟠' : '🟡';
+      recLines.push(`### ${idx++}. ${rec.text}`);
+      recLines.push(`**Priority:** ${priorityEmoji} ${rec.priority.toUpperCase()}\n`);
+      if (rec.reasoning) {
+        recLines.push(`**Why:** ${rec.reasoning}\n`);
+      }
+      if (rec.targetBugs && rec.targetBugs.length > 0) {
+        recLines.push(`**Related Bugs:** ${this.linkBugKeys(rec.targetBugs)}`);
+      }
+      recLines.push('');
+      return recLines.join('\n');
+    };
+
+    if (critical.length > 0) {
+      lines.push('---\n#### Critical Priority\n');
+      critical.forEach(r => lines.push(formatRec(r)));
+    }
+    if (high.length > 0) {
+      lines.push('---\n#### High Priority\n');
+      high.forEach(r => lines.push(formatRec(r)));
+    }
+    if (medium.length > 0) {
+      lines.push('---\n#### Medium Priority\n');
+      medium.forEach(r => lines.push(formatRec(r)));
     }
 
     return lines.join('\n');
@@ -174,7 +218,7 @@ ${htmlContent}
 
     for (const pattern of patterns) {
       const category = pattern.category.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      const bugs = pattern.bugKeys.map(k => `\`${k}\``).join(', ');
+      const bugs = this.linkBugKeys(pattern.bugKeys);
       lines.push(`| **${category}** | ${pattern.description} | ${pattern.frequency} | ${bugs} |`);
     }
 
@@ -199,7 +243,7 @@ ${htmlContent}
       scenarioLines.push(`### ${index}. ${scenario.name}`);
       scenarioLines.push(`**Priority:** ${scenario.priority.toUpperCase()} | **Type:** ${scenario.type}\n`);
       scenarioLines.push(scenario.description);
-      scenarioLines.push(`\n**Target Bugs:** ${scenario.targetBugs.map(k => `\`${k}\``).join(', ')}`);
+      scenarioLines.push(`\n**Target Bugs:** ${this.linkBugKeys(scenario.targetBugs)}`);
 
       if (scenario.preconditions.length > 0) {
         scenarioLines.push('\n**Preconditions:**');
@@ -272,7 +316,7 @@ ${htmlContent}
 
     for (const point of sortedPoints) {
       const phaseName = point.phase.charAt(0).toUpperCase() + point.phase.slice(1);
-      const bugs = point.bugKeys.map(k => `\`${k}\``).join(', ');
+      const bugs = this.linkBugKeys(point.bugKeys);
       lines.push(`| **${phaseName}** | ${point.frequency} | ${bugs} | ${point.preventionStrategy} |`);
     }
 
@@ -324,8 +368,8 @@ ${htmlContent}
 
     for (const reg of actualRegressions) {
       const typeName = reg.regressionType.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      const related = reg.relatedBugKeys.map(k => `\`${k}\``).join(', ') || 'N/A';
-      lines.push(`| \`${reg.bugKey}\` | ${typeName} | ${related} | ${reg.likelyCause} |`);
+      const related = reg.relatedBugKeys.length > 0 ? this.linkBugKeys(reg.relatedBugKeys) : 'N/A';
+      lines.push(`| ${this.linkBugKey(reg.bugKey)} | ${typeName} | ${related} | ${reg.likelyCause} |`);
     }
 
     return lines.join('\n');
@@ -353,7 +397,7 @@ ${htmlContent}
       const impactEmoji = impact.impactLevel === 'critical' ? '🔴' :
                           impact.impactLevel === 'high' ? '🟠' :
                           impact.impactLevel === 'medium' ? '🟡' : '🟢';
-      return `| \`${impact.bugKey}\` | ${impactEmoji} ${impact.impactLevel.toUpperCase()} | ${impact.affectedUsers} | ${impact.businessFunction} | ${workaround} | ${impact.estimatedCost} |`;
+      return `| ${this.linkBugKey(impact.bugKey)} | ${impactEmoji} ${impact.impactLevel.toUpperCase()} | ${impact.affectedUsers} | ${impact.businessFunction} | ${workaround} | ${impact.estimatedCost} |`;
     };
 
     critical.forEach(i => lines.push(formatImpact(i)));
@@ -381,7 +425,7 @@ ${htmlContent}
       recLines.push(`### ${index}. ${rec.category}`);
       recLines.push(`**Priority:** ${rec.priority.toUpperCase()}\n`);
       recLines.push(rec.description);
-      recLines.push(`\n**Target Bugs:** ${rec.targetBugs.map(k => `\`${k}\``).join(', ')}`);
+      recLines.push(`\n**Target Bugs:** ${this.linkBugKeys(rec.targetBugs)}`);
 
       if (rec.dataPatterns.length > 0) {
         recLines.push('\n**Data Patterns to Test:**');
@@ -437,7 +481,7 @@ ${htmlContent}
       const areaName = imp.area.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
       const effortEmoji = imp.effort === 'low' ? '🟢' : imp.effort === 'medium' ? '🟡' : '🔴';
       const impactEmoji = imp.impact === 'high' ? '⬆️' : imp.impact === 'medium' ? '➡️' : '⬇️';
-      const bugs = imp.targetBugs.map(k => `\`${k}\``).join(', ');
+      const bugs = this.linkBugKeys(imp.targetBugs);
       lines.push(`| **${areaName}** | ${imp.suggestion} | ${effortEmoji} ${imp.effort} | ${impactEmoji} ${imp.impact} | ${bugs} |`);
     }
 

@@ -49,7 +49,7 @@ export interface PatternAnalysis {
   recurringIssues: RecurringIssue[];
   componentHotspots: ComponentHotspot[];
   summary: string;
-  recommendations: string[];
+  recommendations: Recommendation[];
   escapePatterns: EscapePattern[];
   suggestedTestScenarios: TestScenario[];
   testingGaps: TestingGap[];
@@ -161,6 +161,13 @@ export interface TrendMetrics {
   topComponents: string[];
   riskTrend: 'improving' | 'stable' | 'worsening';
   comparisonToPrevious: string;
+}
+
+export interface Recommendation {
+  text: string;
+  reasoning: string;
+  targetBugs: string[];
+  priority: 'critical' | 'high' | 'medium';
 }
 
 export interface FetchOptions {

@@ -10,6 +10,7 @@ import type {
   ComponentRiskScore,
   CustomerImpact,
   ProcessImprovement,
+  Recommendation,
 } from '../types/index.js';
 
 export class TerminalFormatter {
@@ -129,15 +130,37 @@ export class TerminalFormatter {
     return chalk.bold.green('\nComponent Hotspots:\n') + table.toString();
   }
 
-  private formatRecommendations(recommendations: string[]): string {
-    if (recommendations.length === 0) {
+  private formatRecommendations(recommendations: Recommendation[]): string {
+    if (!recommendations || recommendations.length === 0) {
       return '';
     }
 
     const lines = [chalk.bold.green('\nRecommendations:\n')];
-    for (let i = 0; i < recommendations.length; i++) {
-      lines.push(chalk.white(`  ${i + 1}. ${recommendations[i]}`));
+
+    // Sort by priority and show top ones
+    const sorted = [...recommendations].sort((a, b) => {
+      const order = { critical: 0, high: 1, medium: 2 };
+      return order[a.priority] - order[b.priority];
+    });
+
+    for (let i = 0; i < Math.min(sorted.length, 7); i++) {
+      const rec = sorted[i];
+      const priorityColor = rec.priority === 'critical' ? chalk.bgRed.white :
+                            rec.priority === 'high' ? chalk.red : chalk.yellow;
+
+      lines.push(
+        chalk.white(`  ${i + 1}. ${rec.text}`) +
+        ` [${priorityColor(rec.priority.toUpperCase())}]`
+      );
+      if (rec.reasoning) {
+        lines.push(chalk.gray(`     → ${rec.reasoning}`));
+      }
     }
+
+    if (recommendations.length > 7) {
+      lines.push(chalk.gray(`  ... and ${recommendations.length - 7} more (see full report)`));
+    }
+
     return lines.join('\n');
   }
 

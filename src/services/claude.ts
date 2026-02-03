@@ -13,6 +13,7 @@ import type {
   TestDataRecommendation,
   ProcessImprovement,
   TrendMetrics,
+  Recommendation,
 } from '../types/index.js';
 
 export class ClaudeService {
@@ -181,7 +182,14 @@ Respond with a JSON object matching this exact structure:
     "comparisonToPrevious": "Summary comparison to typical patterns"
   },
   "summary": "High-level summary of findings including escape analysis",
-  "recommendations": ["Recommendation 1", "Recommendation 2"]
+  "recommendations": [
+    {
+      "text": "Specific actionable recommendation",
+      "reasoning": "Why this recommendation will help prevent escapes, based on the analysis",
+      "targetBugs": ["BUG-1", "BUG-2"],
+      "priority": "critical|high|medium"
+    }
+  ]
 }
 
 Return ONLY valid JSON, no markdown code blocks or explanations.`,
@@ -358,12 +366,32 @@ Return ONLY valid JSON, no markdown code blocks or explanations.`,
       comparisonToPrevious: analysis.trendMetrics?.comparisonToPrevious || '',
     };
 
+    const recommendations: Recommendation[] = (analysis.recommendations || []).map(
+      (rec: any) => {
+        // Handle both old string format and new object format
+        if (typeof rec === 'string') {
+          return {
+            text: rec,
+            reasoning: '',
+            targetBugs: [],
+            priority: 'medium' as const,
+          };
+        }
+        return {
+          text: rec.text || '',
+          reasoning: rec.reasoning || '',
+          targetBugs: rec.targetBugs || [],
+          priority: rec.priority || 'medium',
+        };
+      }
+    );
+
     return {
       rootCauseClusters,
       recurringIssues: analysis.recurringIssues || [],
       componentHotspots: analysis.componentHotspots || [],
       summary: analysis.summary || '',
-      recommendations: analysis.recommendations || [],
+      recommendations,
       escapePatterns,
       suggestedTestScenarios,
       testingGaps,

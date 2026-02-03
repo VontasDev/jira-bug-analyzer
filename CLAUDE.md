@@ -65,7 +65,7 @@ src/
 │   ├── json.ts        # Structured JSON export
 │   └── report.ts      # Markdown/HTML report generation
 └── types/
-    └── index.ts       # TypeScript interfaces (JiraBug, PatternAnalysis, EscapePattern, TestScenario, TestingGap)
+    └── index.ts       # TypeScript interfaces (JiraBug, PatternAnalysis, EscapePattern, TestScenario, TestingGap, DefectInjectionPoint, ComponentRiskScore, RegressionAnalysis, CustomerImpact, TestDataRecommendation, ProcessImprovement, TrendMetrics)
 ```
 
 ## Key Patterns
@@ -106,6 +106,45 @@ The analysis report includes the following sections:
   - Current coverage assessment
   - Number of bugs impacted
   - Suggested improvements
+
+### Advanced Analysis
+- **Defect Injection Analysis** - Where in the SDLC defects were introduced:
+  - Phases: requirements, design, coding, integration, deployment
+  - Prevention strategies for each phase
+  - Bug frequency by phase
+
+- **Component Risk Scores** - Risk assessment for components:
+  - Risk score (1-10) based on escape history
+  - Complexity and change frequency factors
+  - Mitigation recommendations
+
+- **Regression Analysis** - Identifies bugs that are regressions:
+  - Types: exact, similar, related-area
+  - Links to previously fixed bugs
+  - Likely cause of regression
+
+- **Customer Impact Analysis** - Business impact assessment:
+  - Impact level (critical/high/medium/low)
+  - Affected user scope (all/many/some/few)
+  - Business function affected
+  - Workaround availability
+  - Estimated cost
+
+- **Test Data Recommendations** - Data patterns that would catch bugs:
+  - Specific data patterns to test
+  - Edge cases to cover
+  - Priority ranking
+
+- **Process Improvement Suggestions** - SIT process changes:
+  - Areas: code-review, testing, deployment, requirements, environment
+  - Effort and impact ratings
+  - Rationale for each suggestion
+
+- **Trend Analysis** - Metrics over time:
+  - Escapes by category
+  - Top affected components
+  - Risk trend (improving/stable/worsening)
+  - Comparison to typical patterns
 
 ## Known Issues & Workarounds
 

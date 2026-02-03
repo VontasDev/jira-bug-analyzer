@@ -84,11 +84,11 @@ jira-analyzer fetch --project PROJ --max 100 --output bugs.json
 ### Analyze Bugs
 
 ```bash
-# Analyze and output to terminal
-jira-analyzer analyze --input bugs.json
-
-# Generate HTML report
+# Analyze escape bugs (default mode)
 jira-analyzer analyze --input bugs.json --format html --output report.html
+
+# Analyze ALL bugs grouped by failure type (positive/negative)
+jira-analyzer analyze --input bugs.json --format html --output report.html --mode all
 
 # Generate Markdown report
 jira-analyzer analyze --input bugs.json --format markdown --output report.md
@@ -96,6 +96,13 @@ jira-analyzer analyze --input bugs.json --format markdown --output report.md
 # Generate JSON output
 jira-analyzer analyze --input bugs.json --format json --output report.json
 ```
+
+### Analysis Modes
+
+| Mode | Description |
+|------|-------------|
+| `escape` | Confirmed escape bugs only (excludes Open status as unconfirmed) |
+| `all` | All bugs grouped by Failure Type (Positive/Negative), includes resolution analysis |
 
 ### Full Pipeline
 

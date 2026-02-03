@@ -40,8 +40,11 @@ jira-analyzer fetch --filter-id 21725 --max 100 --output bugs.json
 # Fetch bugs from a project (may not work if search API is restricted)
 jira-analyzer fetch --project PROJ --max 100 --output bugs.json
 
-# Analyze bugs from file
+# Analyze bugs from file (escape mode - default)
 jira-analyzer analyze --input bugs.json --format html --output report.html
+
+# Analyze all bugs grouped by failure type
+jira-analyzer analyze --input bugs.json --format html --output report.html --mode all
 
 # Full pipeline (fetch + analyze)
 jira-analyzer run --filter-id 21725 --format markdown --output report.md
@@ -76,6 +79,27 @@ src/
 - Descriptions and comments may be in Atlassian Document Format (ADF) - converted to plain text
 - Output formats: terminal (default), json, markdown, html
 - All bug keys in reports are clickable links to Jira (vontas.atlassian.net/browse/KEY)
+
+## Analysis Modes
+
+- **escape** (default): Analyzes confirmed escape bugs only
+  - Filters to bugs with `isEscapeBug=Yes` and status != Open
+  - Open status bugs are excluded as they may not be confirmed bugs
+  - Full escape pattern analysis with SIT focus
+
+- **all**: Analyzes all bugs grouped by Failure Type
+  - Groups bugs by Positive Failure vs Negative Failure
+  - Includes Open/unconfirmed bugs with appropriate flagging
+  - Resolution analysis for resolved bugs
+
+## Jira Custom Fields
+
+The tool extracts these custom fields from Jira:
+- `customfield_10165` - **Failure Type** (Positive/Negative Failure)
+- `customfield_10164` - **Is Escape Bug** (Yes/No)
+- `customfield_10066` - **Customer Impact** (1. Critical to 4. Limited)
+- `customfield_10049` - **Customer** (Customer name)
+- `customfield_10268` - **Severity** (Sev1/Sev2/etc)
 
 ## Analysis Output
 

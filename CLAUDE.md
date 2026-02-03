@@ -65,7 +65,7 @@ src/
 │   ├── json.ts        # Structured JSON export
 │   └── report.ts      # Markdown/HTML report generation
 └── types/
-    └── index.ts       # TypeScript interfaces (JiraBug, PatternAnalysis, EscapePattern, TestScenario, TestingGap, DefectInjectionPoint, ComponentRiskScore, RegressionAnalysis, CustomerImpact, TestDataRecommendation, ProcessImprovement, TrendMetrics)
+    └── index.ts       # TypeScript interfaces (JiraBug, PatternAnalysis, EscapePattern, TestScenario, TestingGap, DefectInjectionPoint, ComponentRiskScore, RegressionAnalysis, CustomerImpact, TestDataRecommendation, ProcessImprovement, TrendMetrics, Recommendation)
 ```
 
 ## Key Patterns
@@ -75,6 +75,7 @@ src/
 - Fetches individual issues via `/rest/api/3/issue/{id}` after getting IDs from JQL search
 - Descriptions and comments may be in Atlassian Document Format (ADF) - converted to plain text
 - Output formats: terminal (default), json, markdown, html
+- All bug keys in reports are clickable links to Jira (vontas.atlassian.net/browse/KEY)
 
 ## Analysis Output
 
@@ -84,7 +85,10 @@ The analysis report includes the following sections:
 - **Root Cause Clusters** - Groups bugs by underlying cause with severity and suggested fixes
 - **Recurring Issues** - Patterns that appear multiple times across bugs
 - **Component Hotspots** - Areas with high bug density and trend indicators
-- **Recommendations** - Actionable suggestions based on the analysis
+- **Recommendations** - Actionable suggestions with reasoning:
+  - Priority level (critical/high/medium)
+  - Reasoning explaining why the recommendation helps
+  - Target bugs that drove the recommendation
 
 ### Escape Analysis (for escaped bugs)
 - **Escape Patterns** - Categorizes WHY bugs escaped SIT testing:

@@ -40,18 +40,53 @@ program
 program
   .command('fetch')
   .description('Fetch bugs from Jira')
-  .option('-p, --project <project>', 'Jira project key')
-  .option('-q, --jql <query>', 'Custom JQL query')
-  .option('-f, --filter-id <id>', 'Use a saved Jira filter by ID')
+  .option('-q, --jql <query>', 'Custom JQL query (primary method)')
+  .option('-p, --project <project>', 'Jira project key (adds to JQL)')
+  .option('--escape-bugs', 'Filter to escape bugs only (adds to JQL)')
+  .option('--since <date>', 'Bugs created since date, e.g., 2025-01-01 (adds to JQL)')
+  .option('--exclude-wont-fix', 'Exclude Won\'t Fix, Duplicate, Cannot Reproduce resolutions')
+  .option('-f, --filter-id <id>', 'Use a saved Jira filter by ID (alternative to JQL)')
   .option('-l, --list-filters', 'List available bug-related filters')
   .option('-m, --max <number>', 'Maximum bugs to fetch', '100')
   .option('-o, --output <file>', 'Output file path (JSON)')
+  .option('--show-jql', 'Show the generated JQL without fetching')
   .action(async (options) => {
     const config = await loadConfig();
+
+    // Build JQL from options if not provided directly
+    let jql = options.jql;
+    if (!jql && !options.filterId && !options.listFilters) {
+      const conditions: string[] = ['Type = Bug'];
+
+      if (options.project) {
+        conditions.push(`project = "${options.project}"`);
+      }
+
+      if (options.escapeBugs) {
+        conditions.push('"Escaped Bug[Radio Buttons]" = Yes');
+      }
+
+      if (options.since) {
+        conditions.push(`createdDate >= '${options.since}'`);
+      }
+
+      if (options.excludeWontFix) {
+        conditions.push('(resolution = EMPTY OR (resolution != "Cannot Reproduce" and resolution != "Duplicate" and resolution != "Won\'t Do" and resolution != "Working as Designed" and resolution != "Won\'t Fix / Won\'t Do / Rejected" and resolution != "Canceled" and resolution != "Declined" and resolution != "Won\'t Fix"))');
+      }
+
+      jql = conditions.join(' AND ') + ' ORDER BY created DESC';
+    }
+
+    if (options.showJql) {
+      console.log('Generated JQL:');
+      console.log(jql || '(using filter ID)');
+      return;
+    }
+
     await fetchCommand(
       {
         project: options.project,
-        jql: options.jql,
+        jql: jql,
         filterId: options.filterId,
         listFilters: options.listFilters,
         maxResults: parseInt(options.max, 10),

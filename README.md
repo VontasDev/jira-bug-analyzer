@@ -71,15 +71,33 @@ Credentials are stored in `~/.jira-bug-analyzer/config.json`.
 ### Fetch Bugs
 
 ```bash
-# List available Jira filters (recommended)
-jira-analyzer fetch --list-filters
+# Fetch escape bugs with helper options (recommended)
+jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-01-01 --exclude-wont-fix --max 100 --output bugs.json
 
-# Fetch bugs using a saved filter (recommended for restricted Jira instances)
+# Preview generated JQL without fetching
+jira-analyzer fetch --project TMMOB --escape-bugs --show-jql
+
+# Use custom JQL query directly
+jira-analyzer fetch --jql 'Type = Bug AND project = "TMMOB" AND status = Open' --output bugs.json
+
+# Use a saved Jira filter (alternative)
 jira-analyzer fetch --filter-id 12345 --max 100 --output bugs.json
 
-# Fetch bugs from a project (may not work if search API is restricted)
-jira-analyzer fetch --project PROJ --max 100 --output bugs.json
+# List available Jira filters
+jira-analyzer fetch --list-filters
 ```
+
+### Fetch Options
+
+| Option | Description |
+|--------|-------------|
+| `--jql <query>` | Custom JQL query (primary method) |
+| `--project <key>` | Filter by Jira project |
+| `--escape-bugs` | Filter to escape bugs only |
+| `--since <date>` | Bugs created since date (YYYY-MM-DD) |
+| `--exclude-wont-fix` | Exclude Won't Fix, Duplicate, Cannot Reproduce |
+| `--filter-id <id>` | Use saved Jira filter instead of JQL |
+| `--show-jql` | Preview generated JQL without fetching |
 
 ### Analyze Bugs
 

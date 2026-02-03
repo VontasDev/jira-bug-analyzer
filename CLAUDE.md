@@ -31,14 +31,20 @@ jira-analyzer <command>
 # Configure credentials
 jira-analyzer config --jira-url https://yourco.atlassian.net --jira-email user@email.com --jira-token <token> --claude-key <key>
 
-# List available bug filters (recommended for restricted Jira instances)
-jira-analyzer fetch --list-filters
+# Fetch escape bugs with helper options
+jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-01-01 --exclude-wont-fix --max 100 --output bugs.json
 
-# Fetch bugs using a saved filter (recommended)
+# Preview generated JQL without fetching
+jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-01-01 --show-jql
+
+# Use custom JQL query directly
+jira-analyzer fetch --jql 'Type = Bug AND project = "TMMOB" AND status = Open' --output bugs.json
+
+# Use a saved Jira filter (alternative)
 jira-analyzer fetch --filter-id 21725 --max 100 --output bugs.json
 
-# Fetch bugs from a project (may not work if search API is restricted)
-jira-analyzer fetch --project PROJ --max 100 --output bugs.json
+# List available bug filters
+jira-analyzer fetch --list-filters
 
 # Analyze bugs from file (escape mode - default)
 jira-analyzer analyze --input bugs.json --format html --output report.html

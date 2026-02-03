@@ -76,6 +76,9 @@ Credentials are stored in `~/.jira-bug-analyzer/config.json`.
 # Fetch escape bugs with helper options (recommended)
 jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-01-01 --exclude-wont-fix --max 100 --output bugs.json
 
+# Fetch bugs for a specific date range (e.g., Q1 2025)
+jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-01-01 --until 2025-04-01 --output q1-2025.json
+
 # Preview generated JQL without fetching
 jira-analyzer fetch --project TMMOB --escape-bugs --show-jql
 
@@ -97,9 +100,23 @@ jira-analyzer fetch --list-filters
 | `--project <key>` | Filter by Jira project |
 | `--escape-bugs` | Filter to escape bugs only |
 | `--since <date>` | Bugs created since date (YYYY-MM-DD) |
+| `--until <date>` | Bugs created before date (YYYY-MM-DD) |
 | `--exclude-wont-fix` | Exclude Won't Fix, Duplicate, Cannot Reproduce |
 | `--filter-id <id>` | Use saved Jira filter instead of JQL |
 | `--show-jql` | Preview generated JQL without fetching |
+
+### Quarterly Trend Analysis
+
+```bash
+# Fetch each quarter separately for trend comparison
+jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-01-01 --until 2025-04-01 --output q1-2025.json
+jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-04-01 --until 2025-07-01 --output q2-2025.json
+jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-07-01 --until 2025-10-01 --output q3-2025.json
+jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-10-01 --until 2026-01-01 --output q4-2025.json
+
+# Then analyze each quarter
+jira-analyzer analyze --input q1-2025.json --format html --output q1-report.html
+```
 
 ### Analyze Bugs
 

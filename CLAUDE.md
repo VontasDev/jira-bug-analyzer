@@ -43,6 +43,9 @@ jira-analyzer config --jira-url https://yourco.atlassian.net --jira-email user@e
 # Fetch escape bugs with helper options
 jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-01-01 --exclude-wont-fix --max 100 --output bugs.json
 
+# Fetch bugs for a specific date range (e.g., Q1 2025)
+jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-01-01 --until 2025-04-01 --exclude-wont-fix --output q1-2025.json
+
 # Preview generated JQL without fetching
 jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-01-01 --show-jql
 
@@ -54,6 +57,12 @@ jira-analyzer fetch --filter-id 21725 --max 100 --output bugs.json
 
 # List available bug filters
 jira-analyzer fetch --list-filters
+
+# Quarterly trend analysis example
+jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-01-01 --until 2025-04-01 --exclude-wont-fix --output q1-2025.json
+jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-04-01 --until 2025-07-01 --exclude-wont-fix --output q2-2025.json
+jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-07-01 --until 2025-10-01 --exclude-wont-fix --output q3-2025.json
+jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-10-01 --until 2026-01-01 --exclude-wont-fix --output q4-2025.json
 
 # Analyze bugs from file (escape mode - default)
 jira-analyzer analyze --input bugs.json --format html --output report.html
@@ -83,7 +92,7 @@ src/
 │   ├── json.ts        # Structured JSON export
 │   └── report.ts      # Markdown/HTML report generation
 └── types/
-    └── index.ts       # TypeScript interfaces (JiraBug, PatternAnalysis, EscapePattern, TestScenario, TestingGap, DefectInjectionPoint, ComponentRiskScore, RegressionAnalysis, CustomerImpact, TestDataRecommendation, ProcessImprovement, TrendMetrics, Recommendation)
+    └── index.ts       # TypeScript interfaces (JiraBug, PatternAnalysis, EscapePattern, TestScenario, TestingGap, DefectInjectionPoint, ComponentRiskScore, RegressionAnalysis, CustomerImpact, TestDataRecommendation, ProcessImprovement, TrendMetrics, Recommendation, AutomationOpportunity, LinuxPortAnalysis)
 ```
 
 ## Key Patterns

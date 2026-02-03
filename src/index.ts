@@ -44,6 +44,7 @@ program
   .option('-p, --project <project>', 'Jira project key (adds to JQL)')
   .option('--escape-bugs', 'Filter to escape bugs only (adds to JQL)')
   .option('--since <date>', 'Bugs created since date, e.g., 2025-01-01 (adds to JQL)')
+  .option('--until <date>', 'Bugs created before date, e.g., 2025-04-01 (adds to JQL)')
   .option('--exclude-wont-fix', 'Exclude Won\'t Fix, Duplicate, Cannot Reproduce resolutions')
   .option('-f, --filter-id <id>', 'Use a saved Jira filter by ID (alternative to JQL)')
   .option('-l, --list-filters', 'List available bug-related filters')
@@ -68,6 +69,10 @@ program
 
       if (options.since) {
         conditions.push(`createdDate >= '${options.since}'`);
+      }
+
+      if (options.until) {
+        conditions.push(`createdDate < '${options.until}'`);
       }
 
       if (options.excludeWontFix) {

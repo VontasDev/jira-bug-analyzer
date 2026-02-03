@@ -14,6 +14,7 @@ import type {
   ProcessImprovement,
   TrendMetrics,
   Recommendation,
+  AnalysisMode,
 } from '../types/index.js';
 
 export class ClaudeService {
@@ -24,8 +25,11 @@ export class ClaudeService {
     this.client = new Anthropic({ apiKey });
   }
 
-  async analyzeBugs(bugs: JiraBug[]): Promise<PatternAnalysis> {
+  async analyzeBugs(bugs: JiraBug[], mode: AnalysisMode = 'escape'): Promise<PatternAnalysis> {
     const bugsContext = this.formatBugsForAnalysis(bugs);
+    const prompt = mode === 'escape'
+      ? this.buildEscapeAnalysisPrompt(bugs, bugsContext)
+      : this.buildAllBugsAnalysisPrompt(bugs, bugsContext);
 
     const response = await this.client.messages.create({
       model: this.model,
@@ -33,7 +37,28 @@ export class ClaudeService {
       messages: [
         {
           role: 'user',
-          content: `You are an expert software engineer and QA specialist analyzing bug reports that ESCAPED SIT (System Integration Testing).
+          content: prompt,
+        },
+      ],
+    });
+
+    const content = response.content[0];
+    if (content.type !== 'text') {
+      throw new Error('Unexpected response type from Claude');
+    }
+
+    // Strip markdown code blocks if present
+    let jsonText = content.text.trim();
+    if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+    }
+
+    const analysis = JSON.parse(jsonText);
+    return this.enrichAnalysis(analysis, bugs);
+  }
+
+  private buildEscapeAnalysisPrompt(bugs: JiraBug[], bugsContext: string): string {
+    return `You are an expert software engineer and QA specialist analyzing bug reports that ESCAPED SIT (System Integration Testing).
 
 These bugs were found in production or UAT after SIT was completed. Your goal is to understand WHY they escaped and HOW to prevent similar escapes.
 
@@ -192,25 +217,174 @@ Respond with a JSON object matching this exact structure:
   ]
 }
 
-Return ONLY valid JSON, no markdown code blocks or explanations.`,
-        },
-      ],
-    });
+Return ONLY valid JSON, no markdown code blocks or explanations.`;
+  }
 
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type from Claude');
+  private buildAllBugsAnalysisPrompt(bugs: JiraBug[], bugsContext: string): string {
+    // Count bugs by failure type
+    const positiveBugs = bugs.filter(b => b.failureType === 'Positive Failure');
+    const negativeBugs = bugs.filter(b => b.failureType === 'Negative Failure');
+    const openBugs = bugs.filter(b => b.status === 'Open');
+
+    return `You are an expert software engineer and QA specialist analyzing ALL bug reports from a project.
+
+This analysis includes all bugs, grouped by Failure Type:
+- Positive Failure (${positiveBugs.length} bugs): Feature works but not as expected
+- Negative Failure (${negativeBugs.length} bugs): Feature completely fails or missing functionality
+- Open/Unconfirmed (${openBugs.length} bugs): Status is Open, may not be confirmed bugs yet (could be configuration, user error, etc.)
+
+Analyze the following ${bugs.length} bug reports and provide:
+1. Group them into logical clusters based on root cause
+2. Identify recurring issues (same problem appearing multiple times)
+3. Identify component hotspots (areas with high bug density)
+4. Analyze patterns by Failure Type (positive vs negative)
+5. Analyze resolution patterns for resolved bugs
+6. Identify which "Open" bugs are likely real bugs vs configuration/user issues
+7. Assess customer impact of each bug
+8. Provide actionable recommendations
+9. Calculate risk scores for components
+10. Provide trend analysis
+
+Bug Reports:
+${bugsContext}
+
+Respond with a JSON object matching this exact structure:
+{
+  "rootCauseClusters": [
+    {
+      "id": "cluster-1",
+      "name": "Descriptive cluster name",
+      "description": "What these bugs have in common",
+      "rootCause": "The underlying cause",
+      "bugKeys": ["BUG-1", "BUG-2"],
+      "affectedComponents": ["component1"],
+      "severity": "critical|high|medium|low",
+      "suggestedFix": "How to address this"
     }
-
-    // Strip markdown code blocks if present
-    let jsonText = content.text.trim();
-    if (jsonText.startsWith('```')) {
-      // Remove opening ```json or ``` and closing ```
-      jsonText = jsonText.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+  ],
+  "recurringIssues": [
+    {
+      "pattern": "Description of recurring pattern",
+      "occurrences": 3,
+      "bugKeys": ["BUG-1", "BUG-2", "BUG-3"],
+      "timespan": "Over 2 months"
     }
+  ],
+  "componentHotspots": [
+    {
+      "component": "Component name",
+      "bugCount": 5,
+      "severity": "high",
+      "trend": "increasing|stable|decreasing"
+    }
+  ],
+  "escapePatterns": [
+    {
+      "category": "positive-failure|negative-failure|unconfirmed",
+      "description": "Pattern description for this failure type",
+      "bugKeys": ["BUG-1", "BUG-2"],
+      "frequency": 3
+    }
+  ],
+  "suggestedTestScenarios": [
+    {
+      "name": "Test scenario name",
+      "description": "What this test validates",
+      "type": "unit|integration|e2e|performance|stress|environment",
+      "targetBugs": ["BUG-1", "BUG-2"],
+      "preconditions": ["Condition 1"],
+      "steps": ["Step 1", "Step 2"],
+      "expectedOutcome": "What should happen",
+      "priority": "critical|high|medium"
+    }
+  ],
+  "testingGaps": [
+    {
+      "area": "Area or type of testing",
+      "description": "What is missing",
+      "currentCoverage": "Current state",
+      "suggestedImprovement": "How to improve",
+      "impactedBugCount": 5
+    }
+  ],
+  "defectInjectionPoints": [
+    {
+      "phase": "requirements|design|coding|integration|deployment",
+      "description": "How defects were introduced",
+      "bugKeys": ["BUG-1"],
+      "frequency": 3,
+      "preventionStrategy": "Prevention approach"
+    }
+  ],
+  "componentRiskScores": [
+    {
+      "component": "Component name",
+      "riskScore": 8,
+      "escapeHistory": 5,
+      "complexityFactor": "low|medium|high",
+      "changeFrequency": "low|medium|high",
+      "recommendation": "Risk mitigation"
+    }
+  ],
+  "regressionAnalysis": [
+    {
+      "isRegression": true,
+      "bugKey": "BUG-1",
+      "relatedBugKeys": ["BUG-OLD-1"],
+      "regressionType": "exact|similar|related-area",
+      "likelyCause": "Likely cause"
+    }
+  ],
+  "customerImpacts": [
+    {
+      "bugKey": "BUG-1",
+      "impactLevel": "critical|high|medium|low",
+      "affectedUsers": "all|many|some|few",
+      "businessFunction": "Affected function",
+      "workaroundAvailable": true,
+      "estimatedCost": "high|medium|low"
+    }
+  ],
+  "testDataRecommendations": [
+    {
+      "category": "Category",
+      "description": "What to test",
+      "dataPatterns": ["Pattern 1"],
+      "edgeCases": ["Edge case 1"],
+      "targetBugs": ["BUG-1"],
+      "priority": "critical|high|medium"
+    }
+  ],
+  "processImprovements": [
+    {
+      "area": "code-review|testing|deployment|requirements|environment",
+      "suggestion": "Improvement",
+      "rationale": "Why it helps",
+      "targetBugs": ["BUG-1"],
+      "effort": "low|medium|high",
+      "impact": "low|medium|high"
+    }
+  ],
+  "trendMetrics": {
+    "period": "Analysis period",
+    "totalBugs": ${bugs.length},
+    "escapesByCategory": {"positive-failure": ${positiveBugs.length}, "negative-failure": ${negativeBugs.length}, "unconfirmed": ${openBugs.length}},
+    "topComponents": ["Component1"],
+    "riskTrend": "improving|stable|worsening",
+    "comparisonToPrevious": "Comparison summary"
+  },
+  "summary": "High-level summary including failure type breakdown and open bug assessment",
+  "recommendations": [
+    {
+      "text": "Actionable recommendation",
+      "reasoning": "Why this helps",
+      "targetBugs": ["BUG-1"],
+      "priority": "critical|high|medium"
+    }
+  ]
+}
 
-    const analysis = JSON.parse(jsonText);
-    return this.enrichAnalysis(analysis, bugs);
+Return ONLY valid JSON, no markdown code blocks or explanations.`;
   }
 
   private formatBugsForAnalysis(bugs: JiraBug[]): string {
@@ -218,7 +392,9 @@ Return ONLY valid JSON, no markdown code blocks or explanations.`,
       .map((bug) => {
         const parts = [
           `[${bug.key}] ${bug.summary}`,
-          `Status: ${bug.status} | Priority: ${bug.priority || 'None'}`,
+          `Status: ${bug.status} | Resolution: ${bug.resolution || 'Unresolved'} | Priority: ${bug.priority || 'None'}`,
+          `Failure Type: ${bug.failureType || 'Unknown'} | Customer: ${bug.customer || 'Unknown'}`,
+          `Customer Impact: ${bug.customerImpact || 'Unknown'} | Severity: ${bug.severity || 'Unknown'}`,
           `Components: ${bug.components.join(', ') || 'None'}`,
           `Labels: ${bug.labels.join(', ') || 'None'}`,
         ];

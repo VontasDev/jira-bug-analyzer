@@ -68,6 +68,7 @@ program
   .requiredOption('-i, --input <file>', 'Input JSON file with bugs')
   .option('-f, --format <format>', 'Output format: terminal, json, markdown, html', 'terminal')
   .option('-o, --output <file>', 'Output file path')
+  .option('--mode <mode>', 'Analysis mode: escape (confirmed escape bugs) or all (all failures by type)', 'escape')
   .action(async (options) => {
     const config = await loadConfig();
     await analyzeCommand(
@@ -75,6 +76,7 @@ program
         inputFile: options.input,
         outputFormat: options.format,
         outputFile: options.output,
+        mode: options.mode,
       },
       config
     );

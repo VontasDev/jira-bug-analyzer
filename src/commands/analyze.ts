@@ -6,7 +6,7 @@ import { ClaudeService } from '../services/claude.js';
 import { TerminalFormatter } from '../formatters/terminal.js';
 import { JsonFormatter } from '../formatters/json.js';
 import { ReportFormatter } from '../formatters/report.js';
-import type { AnalyzeOptions, Config, JiraBug, PatternAnalysis } from '../types/index.js';
+import type { AnalyzeOptions, AnalysisMode, Config, JiraBug, PatternAnalysis } from '../types/index.js';
 
 export async function analyzeCommand(
   options: AnalyzeOptions,
@@ -20,16 +20,30 @@ export async function analyzeCommand(
     const fileContent = await fs.readFile(inputPath, 'utf-8');
     const bugs: JiraBug[] = JSON.parse(fileContent);
 
-    spinner.text = `Loaded ${bugs.length} bugs. Analyzing with Claude AI...`;
+    const mode: AnalysisMode = options.mode || 'escape';
 
-    if (bugs.length === 0) {
-      spinner.fail('No bugs found in input file.');
+    // Filter bugs based on mode
+    let filteredBugs = bugs;
+    if (mode === 'escape') {
+      // Only confirmed bugs (not Open status) that are escape bugs
+      filteredBugs = bugs.filter(b =>
+        b.isEscapeBug &&
+        b.status !== 'Open' // Open status = unconfirmed
+      );
+      spinner.text = `Loaded ${bugs.length} bugs, ${filteredBugs.length} confirmed escape bugs. Analyzing...`;
+    } else {
+      // All mode - include all but flag open as unconfirmed
+      spinner.text = `Loaded ${bugs.length} bugs (all failures). Analyzing...`;
+    }
+
+    if (filteredBugs.length === 0) {
+      spinner.fail('No bugs found matching criteria.');
       process.exit(1);
     }
 
     // Analyze with Claude
     const claudeService = new ClaudeService(config.anthropicApiKey);
-    const analysis = await claudeService.analyzeBugs(bugs);
+    const analysis = await claudeService.analyzeBugs(filteredBugs, mode);
 
     spinner.succeed('Analysis complete');
 

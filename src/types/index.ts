@@ -15,6 +15,7 @@ export interface JiraBug {
   summary: string;
   description: string | null;
   status: string;
+  resolution: string | null;
   priority: string | null;
   components: string[];
   labels: string[];
@@ -23,6 +24,12 @@ export interface JiraBug {
   reporter: string | null;
   assignee: string | null;
   comments: JiraComment[];
+  // Extracted custom fields
+  failureType: 'Positive Failure' | 'Negative Failure' | null;
+  isEscapeBug: boolean;
+  customerImpact: string | null;
+  customer: string | null;
+  severity: string | null;
   customFields: Record<string, unknown>;
 }
 
@@ -179,10 +186,13 @@ export interface FetchOptions {
   listFilters?: boolean;
 }
 
+export type AnalysisMode = 'escape' | 'all';
+
 export interface AnalyzeOptions {
   inputFile: string;
   outputFormat?: 'terminal' | 'json' | 'markdown' | 'html';
   outputFile?: string;
+  mode?: AnalysisMode;
 }
 
 export interface RunOptions {

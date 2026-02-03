@@ -143,7 +143,7 @@ export class JiraService {
   private async fetchIssueById(issueId: string): Promise<JiraBug | null> {
     try {
       const response = await fetch(
-        `${this.config.jiraHost}/rest/api/3/issue/${issueId}?fields=summary,description,status,priority,components,labels,created,updated,reporter,assignee,comment`,
+        `${this.config.jiraHost}/rest/api/3/issue/${issueId}?fields=*all`,
         {
           headers: {
             Authorization: this.getAuthHeader(),
@@ -191,12 +191,20 @@ export class JiraService {
       description = this.extractTextFromADF(description);
     }
 
+    // Extract specific custom fields
+    const failureTypeField = fields.customfield_10165;
+    const isEscapeField = fields.customfield_10164;
+    const customerImpactField = fields.customfield_10066;
+    const customerField = fields.customfield_10049;
+    const severityField = fields.customfield_10268;
+
     return {
       key: issue.key,
       id: issue.id,
       summary: fields.summary || '',
       description: description || null,
       status: fields.status?.name || 'Unknown',
+      resolution: fields.resolution?.name || null,
       priority: fields.priority?.name || null,
       components: (fields.components || []).map((c: any) => c.name),
       labels: fields.labels || [],
@@ -205,6 +213,11 @@ export class JiraService {
       reporter: fields.reporter?.displayName || null,
       assignee: fields.assignee?.displayName || null,
       comments,
+      failureType: failureTypeField?.value || null,
+      isEscapeBug: isEscapeField?.value === 'Yes',
+      customerImpact: customerImpactField?.value || null,
+      customer: customerField?.value || null,
+      severity: severityField?.value || null,
       customFields: this.extractCustomFields(fields),
     };
   }

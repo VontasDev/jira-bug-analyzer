@@ -13,6 +13,8 @@ import type {
   ProcessImprovement,
   TrendMetrics,
   Recommendation,
+  AutomationOpportunity,
+  LinuxPortAnalysis,
 } from '../types/index.js';
 
 const JIRA_BASE_URL = 'https://vontas.atlassian.net/browse';
@@ -47,6 +49,8 @@ export class ReportFormatter {
     sections.push(this.formatTestDataRecommendationsMarkdown(analysis.testDataRecommendations));
     sections.push(this.formatProcessImprovementsMarkdown(analysis.processImprovements));
     sections.push(this.formatTrendMetricsMarkdown(analysis.trendMetrics));
+    sections.push(this.formatAutomationOpportunitiesMarkdown(analysis.automationOpportunities));
+    sections.push(this.formatLinuxPortAnalysisMarkdown(analysis.linuxPortAnalysis));
     sections.push(this.formatRecommendationsMarkdown(analysis.recommendations));
 
     return sections.join('\n\n');
@@ -532,6 +536,90 @@ ${htmlContent}
     if (metrics.comparisonToPrevious) {
       lines.push('### Comparison Summary\n');
       lines.push(metrics.comparisonToPrevious);
+    }
+
+    return lines.join('\n');
+  }
+
+  private formatAutomationOpportunitiesMarkdown(opportunities: AutomationOpportunity[]): string {
+    if (!opportunities || opportunities.length === 0) {
+      return '## Test Automation Opportunities\n\n*No automation opportunities identified.*';
+    }
+
+    const lines = ['## Test Automation Opportunities'];
+    lines.push('\nTests that could be automated for the C++ codebase with hardware simulation.\n');
+
+    // Sort by impact (high first) then effort (low first) - quick wins first
+    const impactOrder = { high: 0, medium: 1, low: 2 };
+    const effortOrder = { low: 0, medium: 1, high: 2 };
+    const sorted = [...opportunities].sort((a, b) => {
+      const impactDiff = impactOrder[a.impact] - impactOrder[b.impact];
+      if (impactDiff !== 0) return impactDiff;
+      return effortOrder[a.effort] - effortOrder[b.effort];
+    });
+
+    lines.push('| Test Type | Target Area | Effort | Impact | Tools |');
+    lines.push('|-----------|-------------|--------|--------|-------|');
+
+    for (const opp of sorted) {
+      const effortEmoji = opp.effort === 'low' ? '🟢' : opp.effort === 'medium' ? '🟡' : '🔴';
+      const impactEmoji = opp.impact === 'high' ? '⬆️' : opp.impact === 'medium' ? '➡️' : '⬇️';
+      const tools = opp.toolsSuggested.slice(0, 2).join(', ') || 'N/A';
+      const testType = opp.testType.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      lines.push(`| **${testType}** | ${opp.targetArea} | ${effortEmoji} ${opp.effort} | ${impactEmoji} ${opp.impact} | ${tools} |`);
+    }
+
+    lines.push('\n### Automation Details\n');
+    let idx = 1;
+    for (const opp of sorted) {
+      const testType = opp.testType.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      lines.push(`#### ${idx++}. ${testType}: ${opp.targetArea}`);
+      lines.push(opp.description);
+      lines.push(`\n**Approach:** ${opp.automationApproach}`);
+      if (opp.toolsSuggested.length > 0) {
+        lines.push(`\n**Suggested Tools:** ${opp.toolsSuggested.join(', ')}`);
+      }
+      if (opp.targetBugs.length > 0) {
+        lines.push(`\n**Would Catch:** ${this.linkBugKeys(opp.targetBugs)}`);
+      }
+      lines.push('');
+    }
+
+    return lines.join('\n');
+  }
+
+  private formatLinuxPortAnalysisMarkdown(analysis: LinuxPortAnalysis): string {
+    if (!analysis || !analysis.isLinuxRelated || analysis.bugKeys.length === 0) {
+      return '## Linux Port Analysis\n\n*No Linux port-related bugs identified in this dataset.*';
+    }
+
+    const lines = ['## Linux Port Analysis'];
+    lines.push(`\n**${analysis.bugKeys.length} bug(s)** identified as related to the Linux port.\n`);
+    lines.push(`**Affected Bugs:** ${this.linkBugKeys(analysis.bugKeys)}\n`);
+
+    if (analysis.portingChallenges.length > 0) {
+      lines.push('### Porting Challenges\n');
+      analysis.portingChallenges.forEach((challenge, i) => {
+        lines.push(`${i + 1}. ${challenge}`);
+      });
+      lines.push('');
+    }
+
+    if (analysis.platformSpecificIssues.length > 0) {
+      lines.push('### Platform-Specific Issues\n');
+      lines.push('| Issue |');
+      lines.push('|-------|');
+      analysis.platformSpecificIssues.forEach(issue => {
+        lines.push(`| ${issue} |`);
+      });
+      lines.push('');
+    }
+
+    if (analysis.recommendations.length > 0) {
+      lines.push('### Linux Port Recommendations\n');
+      analysis.recommendations.forEach((rec, i) => {
+        lines.push(`${i + 1}. ${rec}`);
+      });
     }
 
     return lines.join('\n');

@@ -67,6 +67,8 @@ export interface PatternAnalysis {
   testDataRecommendations: TestDataRecommendation[];
   processImprovements: ProcessImprovement[];
   trendMetrics: TrendMetrics;
+  automationOpportunities: AutomationOpportunity[];
+  linuxPortAnalysis: LinuxPortAnalysis;
 }
 
 export interface RecurringIssue {
@@ -175,6 +177,25 @@ export interface Recommendation {
   reasoning: string;
   targetBugs: string[];
   priority: 'critical' | 'high' | 'medium';
+}
+
+export interface AutomationOpportunity {
+  testType: 'unit' | 'integration' | 'hardware-simulation' | 'protocol' | 'regression' | 'stress' | 'config-validation';
+  description: string;
+  targetArea: string;
+  automationApproach: string;
+  toolsSuggested: string[];
+  effort: 'low' | 'medium' | 'high';
+  impact: 'low' | 'medium' | 'high';
+  targetBugs: string[];
+}
+
+export interface LinuxPortAnalysis {
+  isLinuxRelated: boolean;
+  bugKeys: string[];
+  portingChallenges: string[];
+  platformSpecificIssues: string[];
+  recommendations: string[];
 }
 
 export interface FetchOptions {

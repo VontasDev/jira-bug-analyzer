@@ -15,6 +15,8 @@ import type {
   TrendMetrics,
   Recommendation,
   AnalysisMode,
+  AutomationOpportunity,
+  LinuxPortAnalysis,
 } from '../types/index.js';
 
 export class ClaudeService {
@@ -58,7 +60,22 @@ export class ClaudeService {
   }
 
   private buildEscapeAnalysisPrompt(bugs: JiraBug[], bugsContext: string): string {
+    // Detect Linux-related bugs
+    const linuxBugs = bugs.filter(b =>
+      b.summary.toLowerCase().includes('linux') ||
+      b.description?.toLowerCase().includes('linux') ||
+      b.labels.some(l => l.toLowerCase().includes('linux')) ||
+      b.components.some(c => c.toLowerCase().includes('linux'))
+    );
+
     return `You are an expert software engineer and QA specialist analyzing bug reports that ESCAPED SIT (System Integration Testing).
+
+CODEBASE CONTEXT:
+- Language: C++ embedded software
+- Hardware: Custom V8 hardware platform for public transit buses
+- Operating Systems: Windows 7, Windows CE, and Linux (active port in progress)
+- Environment: Runs on-vehicle with various hardware integrations (farebox, GPS, displays, etc.)
+- Challenges: Wide hardware variety, real-time requirements, field deployment constraints
 
 These bugs were found in production or UAT after SIT was completed. Your goal is to understand WHY they escaped and HOW to prevent similar escapes.
 
@@ -77,6 +94,8 @@ Analyze the following ${bugs.length} bug reports and provide:
 12. Recommend specific test data patterns that would catch these bugs
 13. Suggest process improvements for code review, testing, and deployment
 14. Provide trend analysis summary comparing to typical patterns
+15. IMPORTANT: Identify test automation opportunities - what tests could be automated for C++ code with hardware simulation
+16. IMPORTANT: Separately analyze Linux port-related bugs (${linuxBugs.length} detected) - identify porting challenges and platform-specific issues
 
 Bug Reports:
 ${bugsContext}
@@ -214,7 +233,26 @@ Respond with a JSON object matching this exact structure:
       "targetBugs": ["BUG-1", "BUG-2"],
       "priority": "critical|high|medium"
     }
-  ]
+  ],
+  "automationOpportunities": [
+    {
+      "testType": "unit|integration|hardware-simulation|protocol|regression|stress|config-validation",
+      "description": "What could be automated",
+      "targetArea": "Component or subsystem to test",
+      "automationApproach": "How to automate this (e.g., mock hardware interfaces, simulate protocols)",
+      "toolsSuggested": ["Google Test", "Hardware-in-loop simulator", "Protocol analyzer"],
+      "effort": "low|medium|high",
+      "impact": "low|medium|high",
+      "targetBugs": ["BUG-1", "BUG-2"]
+    }
+  ],
+  "linuxPortAnalysis": {
+    "isLinuxRelated": true,
+    "bugKeys": ["BUG-1", "BUG-2"],
+    "portingChallenges": ["Challenge 1 specific to Linux port"],
+    "platformSpecificIssues": ["Windows CE API not available on Linux", "Thread model differences"],
+    "recommendations": ["Recommendation for Linux port testing"]
+  }
 }
 
 Return ONLY valid JSON, no markdown code blocks or explanations.`;
@@ -562,6 +600,27 @@ Return ONLY valid JSON, no markdown code blocks or explanations.`;
       }
     );
 
+    const automationOpportunities: AutomationOpportunity[] = (analysis.automationOpportunities || []).map(
+      (opp: any) => ({
+        testType: opp.testType || 'integration',
+        description: opp.description || '',
+        targetArea: opp.targetArea || '',
+        automationApproach: opp.automationApproach || '',
+        toolsSuggested: opp.toolsSuggested || [],
+        effort: opp.effort || 'medium',
+        impact: opp.impact || 'medium',
+        targetBugs: opp.targetBugs || [],
+      })
+    );
+
+    const linuxPortAnalysis: LinuxPortAnalysis = {
+      isLinuxRelated: analysis.linuxPortAnalysis?.isLinuxRelated || false,
+      bugKeys: analysis.linuxPortAnalysis?.bugKeys || [],
+      portingChallenges: analysis.linuxPortAnalysis?.portingChallenges || [],
+      platformSpecificIssues: analysis.linuxPortAnalysis?.platformSpecificIssues || [],
+      recommendations: analysis.linuxPortAnalysis?.recommendations || [],
+    };
+
     return {
       rootCauseClusters,
       recurringIssues: analysis.recurringIssues || [],
@@ -578,6 +637,8 @@ Return ONLY valid JSON, no markdown code blocks or explanations.`;
       testDataRecommendations,
       processImprovements,
       trendMetrics,
+      automationOpportunities,
+      linuxPortAnalysis,
     };
   }
 }

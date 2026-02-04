@@ -58,11 +58,16 @@ jira-analyzer fetch --filter-id 21725 --max 100 --output bugs.json
 # List available bug filters
 jira-analyzer fetch --list-filters
 
-# Quarterly trend analysis example
+# Quarterly trend analysis example - fetch each quarter separately
 jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-01-01 --until 2025-04-01 --exclude-wont-fix --output q1-2025.json
 jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-04-01 --until 2025-07-01 --exclude-wont-fix --output q2-2025.json
 jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-07-01 --until 2025-10-01 --exclude-wont-fix --output q3-2025.json
 jira-analyzer fetch --project TMMOB --escape-bugs --since 2025-10-01 --until 2026-01-01 --exclude-wont-fix --output q4-2025.json
+
+# Annual report with quarterly breakdown - combine quarters and analyze
+# (Use node to merge JSON files, then analyze with --mode all for all bugs)
+node -e "const fs=require('fs'); const all=[...JSON.parse(fs.readFileSync('q1-2025.json')),...JSON.parse(fs.readFileSync('q2-2025.json')),...JSON.parse(fs.readFileSync('q3-2025.json')),...JSON.parse(fs.readFileSync('q4-2025.json'))]; fs.writeFileSync('2025-all.json',JSON.stringify([...new Map(all.map(b=>[b.key,b])).values()],null,2));"
+jira-analyzer analyze --input 2025-all.json --format html --output 2025-annual-report.html --mode all
 
 # Analyze bugs from file (escape mode - default)
 jira-analyzer analyze --input bugs.json --format html --output report.html
@@ -92,7 +97,7 @@ src/
 │   ├── json.ts        # Structured JSON export
 │   └── report.ts      # Markdown/HTML report generation
 └── types/
-    └── index.ts       # TypeScript interfaces (JiraBug, PatternAnalysis, EscapePattern, TestScenario, TestingGap, DefectInjectionPoint, ComponentRiskScore, RegressionAnalysis, CustomerImpact, TestDataRecommendation, ProcessImprovement, TrendMetrics, Recommendation, AutomationOpportunity, LinuxPortAnalysis)
+    └── index.ts       # TypeScript interfaces (JiraBug, PatternAnalysis, EscapePattern, TestScenario, TestingGap, DefectInjectionPoint, ComponentRiskScore, RegressionAnalysis, CustomerImpact, TestDataRecommendation, ProcessImprovement, TrendMetrics, QuarterlyMetrics, Recommendation, AutomationOpportunity, LinuxPortAnalysis)
 ```
 
 ## Key Patterns
@@ -197,6 +202,11 @@ The analysis report includes the following sections:
   - Top affected components
   - Risk trend (improving/stable/worsening)
   - Comparison to typical patterns
+  - **Quarterly Breakdown** - Q1/Q2/Q3/Q4 comparison based on bug created dates:
+    - Bug count per quarter
+    - Quarter-over-quarter trends with arrows (⬆️/⬇️)
+    - Top escape categories and components per quarter
+    - Detailed quarterly sections with bug keys
 
 - **Test Automation Opportunities** - Tests that could be automated:
   - Types: unit, integration, hardware-simulation, protocol, regression, stress, config-validation
